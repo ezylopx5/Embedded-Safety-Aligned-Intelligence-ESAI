@@ -1,0 +1,48 @@
+# ============================================================================
+# Overcooked Coordination Environment Configuration
+# Human-compatible coordination under partial observability
+# ============================================================================
+
+env: overcooked
+layout: cramped_room          # 'cramped_room', 'asymmetric', 'coordination_ring'
+num_agents: 2
+max_episode_steps: 400
+
+# Randomization
+randomize_positions: true     # Random agent spawn points
+randomize_ingredients: false  # Keep ingredient dispensers fixed
+ingredient_spawn_delay: 5     # Respawn delay for picked ingredients
+
+# Rewards
+delivery_reward: 10.0         # Completed soup delivery
+plate_break_penalty: 5.0      # Collision while holding item
+time_penalty: 1.0             # Encourages efficiency
+partial_delivery_bonus: 2.0   # Ingredient placed in pot
+
+# Coordination efficiency weights (Eq. 20 in paper)
+coord_eff:
+  delivery_weight: 1.0
+  break_weight: 0.5
+  idle_weight: 0.1
+
+# Task mechanics
+soup_cook_time: 20            # Steps to cook soup
+ingredients_per_soup: 3       # Ingredients needed
+max_held_items: 1             # Items per agent
+
+# Observation
+partial_observability: true   # Limited FOV
+fov_radius: 3                 # Field of view radius
+observe_partner: true         # See partner location
+observe_held_items: true      # See what partner holds
+
+# Logging
+harm_metric: plate_breakage   # Primary harm metric
+track_handoffs: true          # Log coordination events
+track_idle_time: true         # Log inefficiency
+
+# Difficulty
+difficulty: 'standard'
+# easy: cramped_room, soup_cook_time=10
+# standard: cramped_room, soup_cook_time=20
+# hard: asymmetric, soup_cook_time=30, partial_observability=true

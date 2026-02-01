@@ -1,0 +1,53 @@
+# ============================================================================
+# Sequential Social Dilemma (Harvest) Configuration
+# Tragedy of the commons with resource depletion
+# ============================================================================
+
+env: ssd
+variant: harvest              # 'harvest' or 'cleanup'
+num_agents: 5
+grid_size: 10
+max_episode_steps: 300
+
+# Randomization
+randomize_positions: true      # Randomize agent spawn
+randomize_resources: true      # Randomize initial apple distribution
+initial_resource_variance: 0.2 # ±20% variance in starting resources
+
+# Resource dynamics
+regrowth_rate: 0.05           # Logistic growth rate
+carrying_capacity: 1.0        # Max resource density per cell
+sustainable_rate: 100         # Apples/episode for sustainability
+overharvest_penalty: 1.0      # Penalty for exceeding sustainable rate
+
+# Resource spawn
+resource_clusters: 5          # Number of apple spawn zones
+cluster_density: 0.7          # Density within clusters
+regrowth_noise: 0.1           # Stochasticity in regrowth
+
+# Agent actions
+# 0-3: movement, 4: harvest
+harvest_range: 1              # Must be adjacent to harvest
+harvest_amount: 1             # Apples per harvest action
+
+# Observation
+observation_type: 'local'     # 'local' or 'global'
+local_view_size: 7            # 7x7 local view
+observe_inventory: true       # Include apple count in obs
+
+# Rewards
+harvest_reward: 1.0           # Reward per apple
+depletion_penalty: -0.5       # Penalty when resource depleted
+time_penalty: -0.01           # Step penalty
+
+# Logging
+harm_metric: excess_harvest   # Harvest above sustainable rate
+neighborhood_radius: 2
+similarity: cosine
+track_resource_depletion: true
+
+# Difficulty
+difficulty: 'standard'
+# easy: regrowth_rate=0.1, sustainable_rate=150
+# standard: regrowth_rate=0.05, sustainable_rate=100
+# hard: regrowth_rate=0.02, sustainable_rate=50

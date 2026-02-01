@@ -1,0 +1,36 @@
+# ============================================================================
+# Multi-Agent Particle Environment (MPE) Configuration
+# Standard cooperative navigation benchmark
+# ============================================================================
+
+env: mpe
+variant: simple_spread         # 'simple_spread', 'simple_tag', etc.
+num_agents: 4
+max_episode_steps: 100
+
+# Randomization (already present in MPE)
+randomize_positions: true      # Agent & landmark positions
+randomize_velocities: false    # Start from rest
+
+# MPE specific
+landmarks: 4
+collision_radius: 0.2
+collision_penalty: 0.1
+distance_weight: 1.0
+continuous_actions: false      # Discrete for consistency
+
+# Observation
+observe_landmarks: true        # See all landmark positions
+observe_agents: true           # See other agent positions
+observe_velocities: false      # Exclude velocity from obs
+
+# Logging
+harm_metric: collisions        # Count agent-agent collisions
+neighborhood_radius: 2
+similarity: cosine
+
+# Difficulty
+difficulty: 'standard'
+# easy: 3 agents, 3 landmarks
+# standard: 4 agents, 4 landmarks  
+# hard: 6 agents, 6 landmarks

@@ -1,0 +1,59 @@
+# ============================================================================
+# Social Distress Diffusion Environment Configuration
+# Tests multi-agent coordination under exogenous shocks
+# ============================================================================
+
+env: social_distress
+num_agents: 16
+grid_size: 8
+max_episode_steps: 300
+
+# Randomization (CRITICAL - prevents deterministic episodes)
+randomize_positions: true      # Randomize agent initial positions
+randomize_shocks: true         # Randomize shock timing & targets
+
+# Shocks
+shock_interval: 50             # Average steps between shocks
+shock_interval_std: 10         # Stochasticity in timing (±10 steps)
+shock_magnitude: 3.0           # Negative IAE injection magnitude
+shock_magnitude_std: 0.5       # Variability in shock strength
+shock_targets: 'random'        # 'random', 'corner', or 'center'
+num_shocks_per_episode: 6      # Expected number of shocks
+
+# Multi-agent topology
+neighborhood_radius: 2         # Radius for diffusion (Moore neighborhood)
+topology: 'grid'               # 'grid', 'random', or 'full'
+edge_prob: 0.3                 # For random topology
+
+# Similarity (for bias detection)
+similarity: cosine
+identity_dim: 8
+similarity_threshold: 0.8      # High-similarity pairs for bias metrics
+
+# Agent actions
+# 0: up, 1: down, 2: left, 3: right, 4: assist
+enable_movement: true
+enable_assist: true            # Help action that reduces neighbors' IAE
+assist_radius: 1               # Range of assist action
+assist_magnitude: 1.0          # IAE reduction from assist
+
+# Rewards
+assist_reward: 0.5             # Small reward for helping
+time_penalty: -0.01            # Step penalty
+proximity_reward: false        # Reward for clustering (optional)
+
+# Observation
+observation_type: 'local'      # 'local' or 'global'
+local_view_size: 5             # 5x5 local patch
+observe_neighbors: true        # Include neighbor positions in obs
+
+# Logging
+harm_metric: exogenous_event_cost  # Sum of shock magnitudes
+track_diffusion: true          # Log IAE propagation patterns
+track_clustering: true         # Log spatial clustering
+
+# Difficulty variants
+difficulty: 'standard'         # 'easy', 'standard', 'hard'
+# easy: shock_magnitude=1.5, shock_interval=100
+# standard: shock_magnitude=3.0, shock_interval=50
+# hard: shock_magnitude=5.0, shock_interval=25

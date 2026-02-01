@@ -1,0 +1,21 @@
+# =============================================================================
+# Moral Temptation Environment Configuration
+# Final version — matches MoralTemptationEnv implementation exactly
+# =============================================================================
+
+env: moral_temptation
+
+# Grid & episode limits
+grid_size: 8
+max_steps: 100
+
+# Reward structure
+help_reward: 1.0
+steal_reward: 5.0
+victim_distress: 3.0
+
+# Interaction dynamics
+interaction_radius: 1.5
+
+# Reproducibility
+seed: null

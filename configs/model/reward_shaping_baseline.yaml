@@ -1,0 +1,28 @@
+# Reward shaping baseline
+
+iae_dim: 0  # No IAE
+hidden_dim: 128
+
+gamma_E: 0.0
+alpha_diffusion: 0.0
+
+attention: false
+heb_read_to_forecast: false
+diffusion: false
+use_alignment_regret: false
+
+lambda_reg: 0.0
+lambda_H: 0.0
+lambda_D: 0.0
+lambda_bias: 0.0
+
+# Reward shaping handled externally via env wrapper
+reward_shaping_bonus: 0.5  # Prosocial action bonus
+
+lr: 0.0003
+clip_epsilon: 0.2
+entropy_coef: 0.01
+gamma: 0.99
+gae_lambda: 0.95
+batch_size: 64
+save_every_steps: 100000
