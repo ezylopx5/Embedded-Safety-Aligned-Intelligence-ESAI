@@ -497,10 +497,16 @@ def compute_returns_and_advantages(rollout_data, scheduler, global_step, cfg):
 
 def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
     """
-    Train IAE forecaster with proper gradient isolation.
+    Train IAE forecaster with COUNTERFACTUAL targets.
     
-    FIX BUG-003: Removed reward from input to match inference behavior.
-    FIX BUG-010: Uses separate optimizer for forecaster.
+    FIX BUG-011: The forecaster must learn to predict E^(a) for ALL actions,
+    not just the action taken. We compute counterfactual targets using the
+    known IAE dynamics: E_{t+1} = γ_E * E_t + g_φ(obs, action, harm_t)
+    
+    For each sample, we generate targets for ALL 6 actions:
+    - Actions 0-3 (movement): harm_t = 0
+    - Action 4 (HELP): harm_t = 0  
+    - Action 5 (STEAL): harm_t = victim_distress (from cfg)
     """
     if not agent.use_alignment_regret or not hasattr(agent, 'forecast_net'):
         return 0.0
@@ -510,9 +516,9 @@ def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
         return 0.0
     
     obs_batch = torch.stack(rollout_data['observations']).to(device).detach()
-    actions_batch = torch.tensor(rollout_data['actions'], dtype=torch.long, device=device)
-    # FIX BUG-003: rewards_batch no longer used
-    next_E_batch = torch.stack(rollout_data['next_E']).to(device).detach()
+    
+    # Get victim_distress for counterfactual STEAL targets
+    victim_distress = cfg.get('victim_distress', 3.0)
     
     batch_size = min(64, n_samples)
     n_epochs = 3
@@ -522,7 +528,6 @@ def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
     current_E_base = agent.E.clone().detach()
     
     obs_dim = obs_batch.shape[1]
-    # FIX BUG-003: expected_base_dim no longer includes +1 for reward
     expected_base_dim = obs_dim + agent.action_dim + agent.iae_dim
     
     first_layer = None
@@ -544,45 +549,69 @@ def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
         
         for start in range(0, n_samples - batch_size + 1, batch_size):
             idx = indices[start:start + batch_size]
-            
             obs = obs_batch[idx]
-            actions = actions_batch[idx]
-            target_E = next_E_batch[idx]
+            batch_len = len(idx)
             
-            actions_oh = F.one_hot(actions, num_classes=agent.action_dim).float()
-            context_E = current_E_base.unsqueeze(0).expand(len(idx), -1)
+            # FIX BUG-011: Train on ALL actions, not just the action taken
+            # This teaches the forecaster proper counterfactuals
+            all_losses = []
             
-            # FIX BUG-003: forecast_input WITHOUT reward
-            forecast_input = torch.cat([obs, actions_oh, context_E], dim=-1)
-            
-            if use_hebbian_in_forecaster:
-                if hasattr(agent, 'hebbian_gate'):
-                    gate = agent.hebbian_gate(context_E)
-                else:
-                    gate = torch.ones(len(idx), 1, device=device)
+            for action_id in range(agent.action_dim):
+                # Determine harm_t for this action (counterfactual)
+                if action_id == 5:  # STEAL
+                    harm_t = victim_distress
+                else:  # Movement or HELP
+                    harm_t = 0.0
                 
-                heb_expanded = heb_read_base.unsqueeze(0).expand(len(idx), -1)
-                gated_heb = gate * heb_expanded
-                forecast_input = torch.cat([forecast_input, gated_heb], dim=-1)
+                harm_tensor = torch.full((batch_len, 1), harm_t, device=device)
+                
+                # Compute counterfactual target E using IAE dynamics
+                # E_{t+1} = γ_E * E_t + g_φ(obs, action, harm_t)
+                action_oh = torch.zeros(batch_len, agent.action_dim, device=device)
+                action_oh[:, action_id] = 1.0
+                
+                with torch.no_grad():
+                    dynamics_input = torch.cat([obs, action_oh, harm_tensor], dim=-1)
+                    delta_E = agent.iae_dynamics(dynamics_input)
+                    target_E = agent.gamma_E * current_E_base.unsqueeze(0) + delta_E
+                
+                # Forecaster input
+                context_E = current_E_base.unsqueeze(0).expand(batch_len, -1)
+                forecast_input = torch.cat([obs, action_oh, context_E], dim=-1)
+                
+                if use_hebbian_in_forecaster:
+                    if hasattr(agent, 'hebbian_gate'):
+                        gate = agent.hebbian_gate(context_E)
+                    else:
+                        gate = torch.ones(batch_len, 1, device=device)
+                    
+                    heb_expanded = heb_read_base.unsqueeze(0).expand(batch_len, -1)
+                    gated_heb = gate * heb_expanded
+                    forecast_input = torch.cat([forecast_input, gated_heb], dim=-1)
+                
+                if forecast_input.shape[1] != forecaster_input_dim:
+                    continue
+                
+                pred_E = agent.forecast_net(forecast_input)
+                loss = F.smooth_l1_loss(pred_E, target_E)
+                all_losses.append(loss)
             
-            if forecast_input.shape[1] != forecaster_input_dim:
-                return 0.0
+            if not all_losses:
+                continue
             
-            pred_E = agent.forecast_net(forecast_input)
-            loss = F.smooth_l1_loss(pred_E, target_E)
+            # Average loss over all actions
+            total_batch_loss = torch.stack(all_losses).mean()
             
-            # FIX BUG-010: Use separate forecaster_optimizer
             forecaster_optimizer.zero_grad()
-            loss.backward()
+            total_batch_loss.backward()
             torch.nn.utils.clip_grad_norm_(agent.forecast_net.parameters(), 1.0)
             
-            # FIX: Safe check for hebbian_gate existence (None for PPO/CPO baselines)
             if getattr(agent, 'hebbian_gate', None) is not None:
                 torch.nn.utils.clip_grad_norm_(agent.hebbian_gate.parameters(), 1.0)
             
             forecaster_optimizer.step()
             
-            total_loss += loss.item()
+            total_loss += total_batch_loss.item()
             n_updates += 1
     
     if hasattr(agent, 'update_target_forecaster'):
