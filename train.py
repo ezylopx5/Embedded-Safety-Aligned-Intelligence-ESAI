@@ -36,7 +36,15 @@ from esaiv3.model import ESAIv3Agent
 from esaiv3.env_wrappers import make_env
 from esaiv3.utils import set_seed, compute_gae, get_device
 from esaiv3.logging_utils import ensure_dir, save_json
-from esaiv3.visualization import TrainingVisualizer, create_visualization
+
+# Optional visualization (not required for training)
+try:
+    from esaiv3.visualization import TrainingVisualizer, create_visualization
+    VISUALIZATION_AVAILABLE = True
+except ImportError:
+    VISUALIZATION_AVAILABLE = False
+    TrainingVisualizer = None
+    create_visualization = None
 
 
 # =============================================================================
@@ -354,6 +362,14 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
                 if agent.use_hebbian and agent.hebbian is not None:
                     hebbian_readout = agent.hebbian.read(agent.E)
                 
+                # FIX: Dynamically detect forecaster input dimension
+                first_layer = None
+                for module in agent.forecast_net_target.children():
+                    if isinstance(module, nn.Linear):
+                        first_layer = module
+                        break
+                expected_dim = first_layer.in_features if first_layer else None
+                
                 for a in range(agent.action_dim):
                     action_onehot = torch.zeros(agent.action_dim, device=obs_tensor.device)
                     action_onehot[a] = 1.0
@@ -362,6 +378,11 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
                     if hebbian_readout is not None:
                         input_parts.append(hebbian_readout.squeeze())
                     forecast_input = torch.cat(input_parts)
+                    
+                    # FIX: Pad input if model expects extra dimension (legacy reward placeholder)
+                    if expected_dim is not None and forecast_input.shape[0] < expected_dim:
+                        padding = torch.zeros(expected_dim - forecast_input.shape[0], device=obs_tensor.device)
+                        forecast_input = torch.cat([forecast_input, padding])
                     
                     E_pred = agent.forecast_net_target(forecast_input)
                     E_preds.append(E_pred)
@@ -1057,6 +1078,11 @@ def main():
         lambda_bias=cfg.get('lambda_bias', 0.0),
     ).to(device)
     
+    # FIX: Set kappa from config (default in model is 0.5, config may specify 0.05)
+    if hasattr(agent, 'alignment_loss') and agent.alignment_loss is not None:
+        agent.alignment_loss.kappa = cfg.get('kappa', 0.05)
+        print(f"  Kappa (neighbor harm): {agent.alignment_loss.kappa}")
+    
     # Compile model for faster execution (PyTorch 2.0+)
     if args.compile and use_cuda:
         try:
@@ -1086,7 +1112,7 @@ def main():
     
     # Initialize visualization if enabled
     visualizer = None
-    if args.visualize:
+    if args.visualize and VISUALIZATION_AVAILABLE:
         viz_save_dir = os.path.join(log_dir, 'viz') if args.save_viz else None
         visualizer = create_visualization(
             env, agent,
@@ -1100,6 +1126,8 @@ def main():
                 print(f"  Saving snapshots to: {viz_save_dir}")
         else:
             print(f"\n[train] Visualization: FAILED to initialize")
+    elif args.visualize and not VISUALIZATION_AVAILABLE:
+        print(f"\n[train] Visualization: NOT AVAILABLE (module not installed)")
     
     # FIX BUG-010: Separate optimizers for policy and forecaster
     # Policy/Value optimizer
