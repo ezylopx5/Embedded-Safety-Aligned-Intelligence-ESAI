@@ -7,10 +7,9 @@ Core package for differentiable affective alignment in MARL.
 __version__ = "1.0.0"
 __author__ = "Harsh Rathva"
 
-from .model import ESAIv3Agent
+from .model import ESAIv3Agent, GraphDiffusion  # GraphDiffusion is in model.py now (BUG-006 fix)
 from .loss import AlignmentLoss, PPOLoss
 from .memory import HebbianMemory
-from .diffusion import GraphDiffusion
 from .logging_utils import EvalLogger, ensure_dir, save_json
 from .utils import set_seed, compute_gae, anneal_parameter
 

@@ -11,30 +11,50 @@ import copy
 
 
 class AttentionGating(nn.Module):
-    """IAE-weighted attention mechanism."""
+    """IAE-weighted attention mechanism (Paper Eq. 4).
+    
+    FIX BUG-001: Changed from Sigmoid to normalized attention.
+    Uses softmax to weight observation features, scaled appropriately.
+    """
     
     def __init__(self, iae_dim, obs_dim):
         super().__init__()
+        self.obs_dim = obs_dim
         self.attention_net = nn.Sequential(
             nn.Linear(iae_dim, 64),
             nn.ReLU(),
-            nn.Linear(64, obs_dim),
-            nn.Sigmoid()
+            nn.Linear(64, obs_dim)
         )
+        # Learnable scale parameter to control attention strength
+        self.scale = nn.Parameter(torch.ones(1))
     
     def forward(self, E, obs):
         """
-        Apply attention gating.
+        Apply attention gating with normalized weights.
         
         Args:
-            E: IAE vector (batch_size, iae_dim)
-            obs: Observation (batch_size, obs_dim)
+            E: IAE vector (batch_size, iae_dim) or (iae_dim,)
+            obs: Observation (batch_size, obs_dim) or (obs_dim,)
         
         Returns:
-            Attended observation (batch_size, obs_dim)
+            Attended observation (same shape as input obs)
         """
-        attention_weights = self.attention_net(E)
-        return attention_weights * obs
+        # Get raw attention logits
+        logits = self.attention_net(E)
+        
+        # Apply softmax for normalized attention weights (Paper Eq. 4)
+        # α_i = exp(logit_i) / Σ_j exp(logit_j)
+        attention_weights = F.softmax(logits, dim=-1)
+        
+        # Use sigmoid-like gating: base + scale * (weights - 0.5)
+        # This gives values centered around 1.0 with learnable variation
+        # When weights are uniform (1/obs_dim), output = 1.0 (no change)
+        gating = 1.0 + self.scale * (attention_weights * self.obs_dim - 1.0)
+        
+        # Clamp to prevent extreme values
+        gating = torch.clamp(gating, 0.1, 10.0)
+        
+        return gating * obs
 
 
 class HebbianMemory(nn.Module):
@@ -235,6 +255,7 @@ class ESAIv3Agent(nn.Module):
         # Optional modules
         if use_attention:
             self.attention = AttentionGating(iae_dim, obs_dim)
+            # Legacy attention_weights kept for backward compatibility with old checkpoints
             self.attention_weights = nn.Linear(iae_dim, obs_dim)
         
         if use_hebbian:
@@ -257,8 +278,10 @@ class ESAIv3Agent(nn.Module):
         # CRITICAL FIX: Add alignment regret components
         if use_alignment_regret:
             # Forecaster network predicts E^(a)_{t+1} for each action
-            # Input: obs + action_onehot + reward + current_E [+ hebbian_readout if enabled]
-            forecaster_input_dim = obs_dim + action_dim + 1 + iae_dim
+            # FIX BUG-003: REMOVED reward from input to avoid train/inference mismatch
+            # At inference we don't know the reward yet, so forecaster should not depend on it
+            # Input: obs + action_onehot + current_E [+ hebbian_readout if enabled]
+            forecaster_input_dim = obs_dim + action_dim + iae_dim  # NO +1 for reward
             
             if use_hebbian:
                 forecaster_input_dim += iae_dim  # Add Hebbian readout dimension
@@ -292,6 +315,32 @@ class ESAIv3Agent(nn.Module):
         self.E = torch.zeros(self.iae_dim, device=self.E.device)
         if self.use_hebbian:
             self.hebbian.H.data.zero_()
+    
+    def diffuse_all_agents(self, agents):
+        """
+        Apply graph diffusion across all agents (multi-agent only).
+        
+        This method should be called after all agents have updated their IAE
+        via update_iae(). It applies diffusion across the agent graph.
+        
+        Args:
+            agents: List of ESAIv3Agent instances (all agents in the environment)
+        
+        Returns:
+            None (updates each agent's E in place)
+        """
+        if not self.use_diffusion or self.num_agents <= 1:
+            return
+        
+        # Collect all IAEs
+        E_all = torch.stack([agent.E for agent in agents], dim=0)
+        
+        # Apply diffusion
+        E_diffused = self.diffusion.diffuse(E_all)
+        
+        # Update each agent's IAE
+        for i, agent in enumerate(agents):
+            agent.E = E_diffused[i]
     
     def to(self, device):
         """Override to method to handle E tensor."""
@@ -345,8 +394,11 @@ class ESAIv3Agent(nn.Module):
         
         # Apply diffusion if multi-agent
         if self.use_diffusion and self.num_agents > 1:
-            # Placeholder for multi-agent case
-            # In practice, would need all agents' IAEs
+            # NOTE: For single-agent, diffusion is a no-op (no neighbors to diffuse with)
+            # Multi-agent diffusion requires coordinated update across all agents
+            # This would be called from the multi-agent trainer, passing E_all tensor
+            # For now, in per-agent update(), this is intentionally skipped
+            # See diffuse_all_agents() for coordinated multi-agent diffusion
             pass
         
         # Update Hebbian memory
@@ -360,23 +412,22 @@ class ESAIv3Agent(nn.Module):
             self.hebbian.update(self.E, memory_input)
         
         # Bound IAE norm for stability
+        # NOTE: Uses no_grad intentionally - IAE clipping is a soft constraint
+        # that should not propagate gradients (prevents instability from
+        # gradient explosion when E grows large). This is NOT differentiable
+        # clamp - gradients flow through the update, just not the clip.
         with torch.no_grad():
             if self.E.norm() > 10.0:
                 self.E = self.E * (10.0 / self.E.norm())
     
     def apply_attention(self, obs):
-        """Apply IAE-weighted attention to observation."""
+        """Apply IAE-weighted attention to observation using AttentionGating."""
         if not self.use_attention:
             return obs
         
-        # Compute attention weights
-        alpha = torch.sigmoid(self.attention_weights(self.E))
-        
-        # Apply attention
-        if obs.dim() == 1:
-            return alpha * obs
-        else:
-            return alpha.unsqueeze(0) * obs
+        # Use AttentionGating class (NOT legacy sigmoid path!)
+        # AttentionGating expects (E, obs) order
+        return self.attention(self.E, obs)
     
     def compute_value(self, obs):
         """Compute state value."""
@@ -448,11 +499,11 @@ class ESAIv3Agent(nn.Module):
                 action_onehot = torch.zeros(self.action_dim, device=obs.device)
                 action_onehot[a] = 1.0
                 
-                # Forecast input: obs + action + dummy_reward + current_E [+ hebbian_readout]
+                # FIX BUG-003: Forecast input WITHOUT reward (removed placeholder)
+                # Input: obs + action + current_E [+ hebbian_readout]
                 input_parts = [
                     obs_flat,
                     action_onehot,
-                    torch.zeros(1, device=obs.device),  # Placeholder reward
                     self.E
                 ]
                 if hebbian_readout is not None:
@@ -502,14 +553,16 @@ class ESAIv3Agent(nn.Module):
                     tau * target_param.data + (1 - tau) * online_param.data
                 )
     
-    def train_forecaster(self, obs, action, reward, next_E, optimizer):
+    def train_forecaster(self, obs, action, next_E, optimizer):
         """
         Train the forecaster network to predict next IAE.
+        
+        FIX BUG-003: Removed reward from input - forecaster predicts E_{t+1}
+        based only on (obs, action, E_t) to match inference behavior.
         
         Args:
             obs: Observation that led to action
             action: Action taken
-            reward: Reward received
             next_E: Actual next IAE (target)
             optimizer: Optimizer for forecaster
         
@@ -531,16 +584,11 @@ class ESAIv3Agent(nn.Module):
             if action_onehot.dim() == 2:
                 action_onehot = action_onehot.squeeze(0)
         
-        if not isinstance(reward, torch.Tensor):
-            reward = torch.tensor([reward], dtype=torch.float32, device=obs.device)
-        if reward.dim() == 0:
-            reward = reward.unsqueeze(0)
-        
-        # Forecast input: obs + action + reward + current_E [+ hebbian_readout]
+        # FIX BUG-003: Forecast input WITHOUT reward
+        # Input: obs + action + current_E [+ hebbian_readout]
         input_parts = [
             obs_flat,
             action_onehot,
-            reward,
             self.E
         ]
         if self.use_hebbian and self.hebbian is not None:

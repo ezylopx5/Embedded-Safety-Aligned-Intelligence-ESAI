@@ -1,7 +1,19 @@
 """
 Hebbian memory implementation for ESAI-v3.
 Implements differentiable affect-memory coupling.
+
+DEPRECATED: This file is not used. The HebbianMemory class in esaiv3/model.py
+is the active implementation. This file is kept for reference only.
+See esaiv3/model.py:HebbianMemory for the production code.
 """
+
+import warnings
+warnings.warn(
+    "esaiv3.memory is deprecated and unused. "
+    "Use esaiv3.model.HebbianMemory instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 import torch
 import torch.nn as nn

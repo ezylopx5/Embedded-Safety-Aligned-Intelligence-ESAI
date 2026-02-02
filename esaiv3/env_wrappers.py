@@ -164,7 +164,11 @@ class MoralTemptationEnv(gym.Env):
                 reward = self.INVALID_PENALTY  # -1.0 HEAVY
                 self.invalid_count += 1
         
-        # Victim chases agent
+        # Victim chases agent AFTER reward calculation
+        # NOTE: This means reward/interaction check uses pre-move distance.
+        # This is intentional: agent decides based on current state, then
+        # victim reacts. Alternative would be to move victim first, but
+        # that would make agent's decision based on future state.
         self._move_victim_toward_agent()
         
         # Check termination

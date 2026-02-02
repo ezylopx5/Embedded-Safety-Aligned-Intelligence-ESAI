@@ -36,6 +36,7 @@ from esaiv3.model import ESAIv3Agent
 from esaiv3.env_wrappers import make_env
 from esaiv3.utils import set_seed, compute_gae, get_device
 from esaiv3.logging_utils import ensure_dir, save_json
+from esaiv3.visualization import TrainingVisualizer, create_visualization
 
 
 # =============================================================================
@@ -129,6 +130,29 @@ class ScheduleManager:
         self.iae_max_norm = cfg.get('iae_max_norm', 10.0)
         self.ar_max = cfg.get('ar_max', 50.0)
     
+    def state_dict(self) -> Dict:
+        """Return state dict for checkpoint saving."""
+        return {
+            'lambda_reg_final': self.lambda_reg_final,
+            'lambda_warmup_steps': self.lambda_warmup_steps,
+            'lambda_ramp_steps': self.lambda_ramp_steps,
+            'entropy_init': self.entropy_init,
+            'entropy_final': self.entropy_final,
+            'entropy_decay_steps': self.entropy_decay_steps,
+            'tau_init': self.tau_init,
+            'tau_min': self.tau_min,
+            'tau_decay_steps': self.tau_decay_steps,
+            'iae_max_norm': self.iae_max_norm,
+            'ar_max': self.ar_max,
+            'total_steps': self.total_steps,
+        }
+    
+    def load_state_dict(self, state_dict: Dict):
+        """Load state dict from checkpoint."""
+        for key, value in state_dict.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+    
     def get_lambda_reg(self, step: int) -> float:
         return linear_schedule(
             step, 0.0, self.lambda_reg_final,
@@ -169,10 +193,14 @@ def load_yaml(path: str) -> Dict:
 
 
 def save_checkpoint(agent, optimizer, scheduler, global_step, episode, 
-                    episode_rewards, metrics_history, cfg, log_dir, tag=''):
+                    episode_rewards, metrics_history, cfg, log_dir, tag='',
+                    forecaster_optimizer=None):
+    """Save training checkpoint with all state for proper resumption."""
     checkpoint = {
         'model_state_dict': agent.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
+        'scheduler_state_dict': scheduler.state_dict() if scheduler else None,
+        'forecaster_optimizer_state_dict': forecaster_optimizer.state_dict() if forecaster_optimizer else None,
         'global_step': global_step,
         'episode': episode,
         'episode_rewards': episode_rewards[-1000:],
@@ -215,10 +243,13 @@ def apply_action_mask(logits: torch.Tensor, can_interact: bool) -> torch.Tensor:
 # =============================================================================
 
 def collect_rollout(agent, env, scheduler, global_step, cfg, device, 
-                    max_steps=2048, debug=False):
+                    max_steps=2048, debug=False, visualizer=None):
     """
     Collect rollout with proper IAE clipping, AR computation, and action masking.
     FIXED: Now collects MULTIPLE episodes until max_steps is reached.
+    
+    Args:
+        visualizer: Optional TrainingVisualizer for real-time display
     """
     obs, info = env.reset(seed=np.random.randint(0, 1000000))
     agent.reset_iae()
@@ -256,43 +287,77 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
         with torch.no_grad():
             agent.temperature = current_temp
             
-            # ISSUE #1 FIX: Single action sampling path via agent.act()
-            # This ensures action, AR_t, and IAE are all consistent
-            action, extra = agent.act(obs_tensor, deterministic=False)
-            
-            # Now get logits for masking check and log_prob
+            # FIX BUG-009: Single consistent action sampling path
+            # First get logits and apply mask BEFORE sampling
             if agent.use_attention:
                 obs_attended = agent.apply_attention(obs_tensor)
             else:
                 obs_attended = obs_tensor
             
+            # Check for NaN in obs_attended
+            if torch.isnan(obs_attended).any():
+                obs_attended = obs_tensor  # Fallback to unattended
+            
             policy_input = torch.cat([obs_attended, agent.E.unsqueeze(0)], dim=-1)
             logits = agent.policy_net(policy_input)
             
-            # Apply action mask
+            # Check for NaN in logits - reset if found
+            if torch.isnan(logits).any():
+                logits = torch.zeros_like(logits)
+            
+            # Apply action mask BEFORE sampling
             masked_logits = apply_action_mask(logits, can_interact)
             
-            # If action is invalid under mask, resample from masked distribution
-            action_idx = action.item() if isinstance(action, torch.Tensor) else action
-            if not can_interact and action_idx in [ACTION_HELP, ACTION_STEAL]:
-                probs = F.softmax(masked_logits, dim=-1)
-                dist = torch.distributions.Categorical(probs)
-                action = dist.sample()
-                log_prob = dist.log_prob(action).item()
-            else:
-                # Compute log_prob for the action from agent.act()
-                probs = F.softmax(masked_logits, dim=-1)
-                dist = torch.distributions.Categorical(probs)
-                action_t = action if isinstance(action, torch.Tensor) else torch.tensor(action, device=device)
-                log_prob = dist.log_prob(action_t).item()
+            # Sample from masked distribution (single path - no resampling)
+            probs = F.softmax(masked_logits, dim=-1)
+            
+            # Check for NaN in probs - use uniform if found
+            if torch.isnan(probs).any():
+                probs = torch.ones_like(probs) / probs.shape[-1]
+            
+            dist = torch.distributions.Categorical(probs)
+            action = dist.sample()
+            log_prob = dist.log_prob(action).item()
+            
+            # Now compute AR for the SAME action we sampled
+            # FIX BUG-009: AR must be computed for the action we actually take
+            AR_t = torch.tensor(0.0, device=obs_tensor.device)
+            if agent.use_alignment_regret and hasattr(agent, 'forecast_net'):
+                E_preds = []
+                obs_flat = obs_tensor.flatten()
+                
+                hebbian_readout = None
+                if agent.use_hebbian and agent.hebbian is not None:
+                    hebbian_readout = agent.hebbian.read(agent.E)
+                
+                for a in range(agent.action_dim):
+                    action_onehot = torch.zeros(agent.action_dim, device=obs_tensor.device)
+                    action_onehot[a] = 1.0
+                    
+                    input_parts = [obs_flat, action_onehot, agent.E]
+                    if hebbian_readout is not None:
+                        input_parts.append(hebbian_readout.squeeze())
+                    forecast_input = torch.cat(input_parts)
+                    
+                    E_pred = agent.forecast_net_target(forecast_input)
+                    E_preds.append(E_pred)
+                
+                E_preds = torch.stack(E_preds)
+                agent.alignment_loss.temperature = agent.temperature
+                AR_t = agent.alignment_loss(E_current=agent.E, E_preds=E_preds, E_neighbors=None)
+            
+            ar_penalty = AR_t.item() if isinstance(AR_t, torch.Tensor) else AR_t
+            ar_penalty = scheduler.clip_ar(ar_penalty)
             
             # Get value estimate
             value = agent.compute_value(obs_tensor)
-        
-        ar_penalty = extra.get('AR_t', 0.0)
-        if isinstance(ar_penalty, torch.Tensor):
-            ar_penalty = ar_penalty.item()
-        ar_penalty = scheduler.clip_ar(ar_penalty)
+            
+            # Store extra info
+            extra = {
+                'E': agent.E.detach().cpu().numpy(),
+                'AR_t': ar_penalty,
+                'E_norm': agent.E.norm().item()
+            }
         
         action_np = action.item()
         step_result = env.step(action_np)
@@ -317,6 +382,28 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
         if not can_interact:
             action_mask[ACTION_HELP] = 0.0
             action_mask[ACTION_STEAL] = 0.0
+        
+        # Update visualization if enabled
+        if visualizer is not None:
+            # Get action probabilities for visualization
+            with torch.no_grad():
+                probs = F.softmax(masked_logits, dim=-1).cpu().numpy().flatten()
+            
+            # Add interaction_radius to info for visualization
+            info['interaction_radius'] = getattr(env, 'interaction_radius', 1.5)
+            
+            visualizer.update(
+                agent_pos=getattr(env, 'agent_pos', np.array([0, 0])),
+                victim_pos=getattr(env, 'victim_pos', np.array([1, 1])),
+                action=action_np,
+                action_probs=probs,
+                reward=reward,
+                info=info,
+                iae=agent.E.detach().cpu().numpy(),
+                ar=ar_penalty,
+                episode_done=(terminated or truncated),
+                episode_reward=episode_reward if (terminated or truncated) else 0
+            )
         
         # Store transition
         rollout_data['observations'].append(obs_tensor.squeeze(0).detach().cpu())
@@ -384,8 +471,13 @@ def compute_returns_and_advantages(rollout_data, scheduler, global_step, cfg):
 # FORECASTER TRAINING
 # =============================================================================
 
-def train_forecaster(agent, optimizer, rollout_data, cfg, device):
-    """Train IAE forecaster with proper gradient isolation."""
+def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
+    """
+    Train IAE forecaster with proper gradient isolation.
+    
+    FIX BUG-003: Removed reward from input to match inference behavior.
+    FIX BUG-010: Uses separate optimizer for forecaster.
+    """
     if not agent.use_alignment_regret or not hasattr(agent, 'forecast_net'):
         return 0.0
     
@@ -395,7 +487,7 @@ def train_forecaster(agent, optimizer, rollout_data, cfg, device):
     
     obs_batch = torch.stack(rollout_data['observations']).to(device).detach()
     actions_batch = torch.tensor(rollout_data['actions'], dtype=torch.long, device=device)
-    rewards_batch = torch.tensor(rollout_data['rewards'], dtype=torch.float32, device=device)
+    # FIX BUG-003: rewards_batch no longer used
     next_E_batch = torch.stack(rollout_data['next_E']).to(device).detach()
     
     batch_size = min(64, n_samples)
@@ -406,7 +498,8 @@ def train_forecaster(agent, optimizer, rollout_data, cfg, device):
     current_E_base = agent.E.clone().detach()
     
     obs_dim = obs_batch.shape[1]
-    expected_base_dim = obs_dim + agent.action_dim + 1 + agent.iae_dim
+    # FIX BUG-003: expected_base_dim no longer includes +1 for reward
+    expected_base_dim = obs_dim + agent.action_dim + agent.iae_dim
     
     first_layer = None
     if hasattr(agent.forecast_net, 'children'):
@@ -430,13 +523,13 @@ def train_forecaster(agent, optimizer, rollout_data, cfg, device):
             
             obs = obs_batch[idx]
             actions = actions_batch[idx]
-            rewards = rewards_batch[idx]
             target_E = next_E_batch[idx]
             
             actions_oh = F.one_hot(actions, num_classes=agent.action_dim).float()
             context_E = current_E_base.unsqueeze(0).expand(len(idx), -1)
             
-            forecast_input = torch.cat([obs, actions_oh, rewards.unsqueeze(1), context_E], dim=-1)
+            # FIX BUG-003: forecast_input WITHOUT reward
+            forecast_input = torch.cat([obs, actions_oh, context_E], dim=-1)
             
             if use_hebbian_in_forecaster:
                 if hasattr(agent, 'hebbian_gate'):
@@ -454,7 +547,8 @@ def train_forecaster(agent, optimizer, rollout_data, cfg, device):
             pred_E = agent.forecast_net(forecast_input)
             loss = F.smooth_l1_loss(pred_E, target_E)
             
-            optimizer.zero_grad()
+            # FIX BUG-010: Use separate forecaster_optimizer
+            forecaster_optimizer.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(agent.forecast_net.parameters(), 1.0)
             
@@ -462,7 +556,7 @@ def train_forecaster(agent, optimizer, rollout_data, cfg, device):
             if getattr(agent, 'hebbian_gate', None) is not None:
                 torch.nn.utils.clip_grad_norm_(agent.hebbian_gate.parameters(), 1.0)
             
-            optimizer.step()
+            forecaster_optimizer.step()
             
             total_loss += loss.item()
             n_updates += 1
@@ -477,11 +571,15 @@ def train_forecaster(agent, optimizer, rollout_data, cfg, device):
 # PPO UPDATE (with action masking)
 # =============================================================================
 
-def ppo_update(agent, optimizer, rollout_data, returns, advantages, 
+def ppo_update(agent, optimizer, forecaster_optimizer, rollout_data, returns, advantages, 
                scheduler, global_step, cfg, device, scaler=None):
     """PPO update with action masking for invalid moral actions.
     
+    FIX BUG-010: Added separate forecaster_optimizer parameter.
+    
     Args:
+        optimizer: Optimizer for policy/value networks
+        forecaster_optimizer: Separate optimizer for forecaster network
         scaler: Optional GradScaler for mixed precision training (A100 optimization)
     """
     num_epochs = cfg.get('num_epochs', 10)
@@ -526,9 +624,11 @@ def ppo_update(agent, optimizer, rollout_data, returns, advantages,
             
             # Mixed precision forward pass
             with autocast(device_type='cuda', enabled=use_amp):
-                if agent.use_attention and hasattr(agent, 'attention_weights'):
-                    alpha = torch.sigmoid(agent.attention_weights(current_E))
-                    obs_att = alpha * obs
+                # Apply attention using stored E from rollout (not current agent.E)
+                # This avoids graph issues and uses the correct E for each sample
+                if agent.use_attention:
+                    # Use AttentionGating directly with stored E
+                    obs_att = agent.attention(current_E, obs)
                 else:
                     obs_att = obs
                 
@@ -544,9 +644,16 @@ def ppo_update(agent, optimizer, rollout_data, returns, advantages,
                 log_probs = F.log_softmax(masked_logits, dim=-1)
                 new_lp = log_probs.gather(1, actions.unsqueeze(1)).squeeze(1)
                 
-                # Entropy over valid actions only
+                # Entropy over valid actions only (avoid NaN from -inf * 0)
                 probs = F.softmax(masked_logits, dim=-1)
-                entropy = -(probs * log_probs * action_masks).sum(dim=-1).mean()
+                # Clamp log_probs to avoid -inf * 0 = nan
+                safe_log_probs = torch.clamp(log_probs, min=-20.0)
+                entropy_raw = -(probs * safe_log_probs * action_masks).sum(dim=-1).mean()
+                # Guard against NaN entropy - use detached fallback to avoid graph issues
+                if torch.isfinite(entropy_raw):
+                    entropy = entropy_raw
+                else:
+                    entropy = torch.zeros(1, device=entropy_raw.device, requires_grad=False).squeeze()
                 
                 ratio = torch.exp(new_lp - old_lp)
                 surr1 = ratio * adv
@@ -583,7 +690,8 @@ def ppo_update(agent, optimizer, rollout_data, returns, advantages,
             total_entropy += entropy.item()
             n_updates += 1
     
-    forecast_loss = train_forecaster(agent, optimizer, rollout_data, cfg, device)
+    # FIX BUG-010: Use separate forecaster_optimizer
+    forecast_loss = train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device)
     
     return {
         'policy_loss': total_policy_loss / max(n_updates, 1),
@@ -696,8 +804,15 @@ def evaluate(agent, env, scheduler, global_step, num_episodes, device):
         results['steal_counts'].append(ep_steal)
         results['moral_decisions'].append(ep_help + ep_steal)
         
+        # Per-episode PR: Track ALL episodes, including zero-engagement ones
+        # Zero-engagement episodes get PR=0.0 (not NaN) to avoid inflation
+        # This is more conservative - treats no moral action as "not prosocial"
         if ep_help + ep_steal > 0:
             results['prosocial_ratios'].append(ep_help / (ep_help + ep_steal))
+        else:
+            # Zero-engagement: Record as 0.0 (conservative) not NaN (exclusion)
+            # Rationale: Agent had opportunity but didn't engage prosocially
+            results['prosocial_ratios'].append(0.0)
         
         if ep_ar:
             results['alignment_regrets'].append(np.mean(ep_ar))
@@ -708,16 +823,28 @@ def evaluate(agent, env, scheduler, global_step, num_episodes, device):
     total_steal = sum(results['steal_counts'])
     total_moral = total_help + total_steal
     
+    # Count episodes with moral engagement
+    engaged_episodes = sum(1 for md in results['moral_decisions'] if md > 0)
+    
+    # Per-episode PR mean (includes zeros for non-engaged episodes)
+    per_episode_pr_mean = np.mean(results['prosocial_ratios'])
+    
     return {
         'mean_reward': np.mean(results['rewards']),
         'std_reward': np.std(results['rewards']),
+        # Aggregate PR: total_help / total_moral (undefined -> 0 if no moral decisions)
         'prosocial_ratio': total_help / max(1, total_moral),
+        # Per-episode mean (includes 0s for non-engaged episodes - more conservative)
+        'prosocial_ratio_per_ep': per_episode_pr_mean,
         'alignment_regret': np.mean(results['alignment_regrets']) if results['alignment_regrets'] else 0.0,
         'iae_norm': np.mean(results['iae_norms']) if results['iae_norms'] else 0.0,
         'total_moral_decisions': total_moral,
         'total_help': total_help,
         'total_steal': total_steal,
         'mean_moral_per_ep': total_moral / max(1, num_episodes),
+        'engaged_episodes': engaged_episodes,
+        'engagement_rate': engaged_episodes / max(1, num_episodes),  # % of episodes with moral decisions
+        'zero_engagement_episodes': num_episodes - engaged_episodes,
         'invalid_rate': 0.0,  # Now 0% because we mask invalid actions
     }
 
@@ -809,6 +936,13 @@ def main():
                         help='Override batch size (use 512-1024 for A100)')
     parser.add_argument('--rollout-length', type=int, default=None,
                         help='Override rollout length (use 4096-8192 for A100)')
+    # Visualization flags
+    parser.add_argument('--visualize', action='store_true',
+                        help='Enable real-time training visualization')
+    parser.add_argument('--viz-freq', type=int, default=10,
+                        help='Visualization update frequency (steps)')
+    parser.add_argument('--save-viz', action='store_true',
+                        help='Save visualization snapshots')
     args = parser.parse_args()
     
     # Load configs
@@ -897,15 +1031,47 @@ def main():
         if first_layer:
             print(f"  Forecaster input dim: {first_layer.in_features}")
     
-    # Optimizer
-    all_params = []
-    seen_ids = set()
-    for p in agent.parameters():
-        if id(p) not in seen_ids and p.requires_grad:
-            all_params.append(p)
-            seen_ids.add(id(p))
+    # Initialize visualization if enabled
+    visualizer = None
+    if args.visualize:
+        viz_save_dir = os.path.join(log_dir, 'viz') if args.save_viz else None
+        visualizer = create_visualization(
+            env, agent,
+            enabled=True,
+            update_freq=args.viz_freq,
+            save_dir=viz_save_dir
+        )
+        if visualizer:
+            print(f"\n[train] Visualization: ENABLED (update every {args.viz_freq} steps)")
+            if viz_save_dir:
+                print(f"  Saving snapshots to: {viz_save_dir}")
+        else:
+            print(f"\n[train] Visualization: FAILED to initialize")
     
-    optimizer = torch.optim.Adam(all_params, lr=cfg.get('lr', 3e-4))
+    # FIX BUG-010: Separate optimizers for policy and forecaster
+    # Policy/Value optimizer
+    policy_params = []
+    forecaster_params = []
+    seen_ids = set()
+    
+    for name, p in agent.named_parameters():
+        if not p.requires_grad:
+            continue
+        if id(p) in seen_ids:
+            continue
+        seen_ids.add(id(p))
+        
+        # Separate forecaster params from policy/value params
+        if 'forecast_net' in name or 'forecast_net_target' in name:
+            forecaster_params.append(p)
+        else:
+            policy_params.append(p)
+    
+    optimizer = torch.optim.Adam(policy_params, lr=cfg.get('lr', 3e-4))
+    
+    # FIX BUG-010: Separate forecaster optimizer with potentially different LR
+    forecaster_lr = cfg.get('forecaster_lr', cfg.get('lr', 3e-4))
+    forecaster_optimizer = torch.optim.Adam(forecaster_params, lr=forecaster_lr) if forecaster_params else None
     
     # Schedule manager
     scheduler = ScheduleManager(cfg, args.total_steps)
@@ -917,6 +1083,7 @@ def main():
     print(f"\n[train] Features:")
     print(f"  Evaluation: STOCHASTIC (paper-faithful)")
     print(f"  Action masking: ENABLED (no invalid help/steal)")
+    print(f"  Separate forecaster optimizer: {'ENABLED' if forecaster_optimizer else 'N/A'}")
     
     # Training state
     global_step = 0
@@ -932,7 +1099,8 @@ def main():
         rollout_data, ep_reward, steps = collect_rollout(
             agent, env, scheduler, global_step, cfg, device,
             max_steps=cfg.get('rollout_length', 2048),
-            debug=args.debug
+            debug=args.debug,
+            visualizer=visualizer
         )
         
         global_step += steps
@@ -949,8 +1117,9 @@ def main():
             rollout_data, scheduler, global_step, cfg
         )
         
+        # FIX BUG-010: Pass separate forecaster_optimizer
         update_metrics = ppo_update(
-            agent, optimizer, rollout_data, returns, advantages,
+            agent, optimizer, forecaster_optimizer, rollout_data, returns, advantages,
             scheduler, global_step, cfg, device, scaler=scaler
         )
         
@@ -992,18 +1161,27 @@ def main():
                 best_eval_reward = eval_metrics['mean_reward']
                 save_checkpoint(agent, optimizer, scheduler, global_step,
                                episode_count, episode_rewards, metrics_history,
-                               cfg, log_dir, tag='best')
+                               cfg, log_dir, tag='best',
+                               forecaster_optimizer=forecaster_optimizer)
         
         if global_step % args.save_interval == 0:
             save_checkpoint(agent, optimizer, scheduler, global_step,
                            episode_count, episode_rewards, metrics_history,
-                           cfg, log_dir)
+                           cfg, log_dir,
+                           forecaster_optimizer=forecaster_optimizer)
     
     pbar.close()
     
+    # Clean up visualization
+    if visualizer is not None:
+        if args.save_viz:
+            visualizer.save_snapshot('final')
+        visualizer.close()
+    
     save_checkpoint(agent, optimizer, scheduler, global_step,
                    episode_count, episode_rewards, metrics_history,
-                   cfg, log_dir, tag='final')
+                   cfg, log_dir, tag='final',
+                   forecaster_optimizer=forecaster_optimizer)
     
     elapsed = time.time() - start_time
     print(f"\n{'='*60}")

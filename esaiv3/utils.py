@@ -27,25 +27,36 @@ def set_seed(seed: int):
         torch.backends.cudnn.benchmark = False
 
 
-def spectral_norm_matrix(matrix: torch.Tensor, max_spectral_radius: float = 0.95):
+def spectral_norm_matrix(matrix: torch.Tensor, max_spectral_radius: float = 0.95,
+                         use_power_iteration: bool = True, n_iterations: int = 10):
     """
     Apply spectral normalization to ensure bounded spectral radius.
     
     Args:
         matrix: Input matrix (e.g., Laplacian or weight matrix)
         max_spectral_radius: Maximum allowed spectral radius
+        use_power_iteration: If True, use O(n) power iteration; else O(n^3) eigvals
+        n_iterations: Number of power iteration steps
     
     Returns:
         Normalized matrix
     """
     with torch.no_grad():
-        # Handle both real and complex eigenvalues
-        if matrix.is_complex():
-            eigenvalues = torch.linalg.eigvals(matrix)
+        if use_power_iteration:
+            # Power iteration: O(n) per iteration, much faster for large matrices
+            v = torch.randn(matrix.size(0), device=matrix.device)
+            v = v / v.norm()
+            for _ in range(n_iterations):
+                v = matrix @ v
+                v = v / (v.norm() + 1e-8)
+            spectral_radius = (v @ matrix @ v).abs().item()
         else:
-            eigenvalues = torch.linalg.eigvals(matrix.float())
-        
-        spectral_radius = torch.max(torch.abs(eigenvalues)).item()
+            # Full eigenvalue decomposition: O(n^3), exact but slow
+            if matrix.is_complex():
+                eigenvalues = torch.linalg.eigvals(matrix)
+            else:
+                eigenvalues = torch.linalg.eigvals(matrix.float())
+            spectral_radius = torch.max(torch.abs(eigenvalues)).item()
         
         if spectral_radius > max_spectral_radius:
             matrix = matrix * (max_spectral_radius / spectral_radius)
@@ -400,7 +411,9 @@ class RunningMeanStd:
     
     def normalize(self, x):
         """Normalize input using running statistics."""
-        return (x - self.mean) / np.sqrt(self.var + 1e-8)
+        # Clamp variance to prevent NaN from numerical precision issues
+        safe_var = np.maximum(self.var, 0.0)
+        return (x - self.mean) / np.sqrt(safe_var + 1e-8)
     
     def denormalize(self, x):
         """Denormalize input."""
