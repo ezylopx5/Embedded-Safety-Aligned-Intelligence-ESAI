@@ -519,6 +519,83 @@ def compute_returns_and_advantages(rollout_data, scheduler, global_step, cfg):
 
 
 # =============================================================================
+# IAE DYNAMICS TRAINING (BUG-024 FIX)
+# =============================================================================
+
+def train_iae_dynamics(agent, optimizer, rollout_data, cfg, device):
+    """
+    Train the IAE dynamics network g_φ on actual observed transitions.
+    
+    FIX BUG-024: iae_dynamics was never trained - it stayed at random init!
+    This caused forecaster targets to be meaningless.
+    
+    The dynamics network learns: delta_E = g_φ(obs, action, harm_t)
+    Target: actual_delta_E = next_E - γ_E * current_E (from rollout)
+    """
+    n_samples = len(rollout_data['observations'])
+    if n_samples < 32:
+        return 0.0
+    
+    obs_batch = torch.stack(rollout_data['observations']).to(device).detach()
+    actions_batch = torch.tensor(rollout_data['actions'], dtype=torch.long, device=device)
+    current_E_batch = torch.stack(rollout_data['current_E']).to(device).detach()
+    next_E_batch = torch.stack(rollout_data['next_E']).to(device).detach()
+    pr_flags = rollout_data['pr_flags']
+    
+    # Get victim_distress for harm signal
+    victim_distress = cfg.get('victim_distress', 3.0)
+    
+    batch_size = min(64, n_samples)
+    n_epochs = 2  # Fewer epochs than forecaster
+    total_loss = 0.0
+    n_updates = 0
+    
+    for epoch in range(n_epochs):
+        indices = torch.randperm(n_samples, device=device)
+        
+        for start in range(0, n_samples - batch_size + 1, batch_size):
+            idx = indices[start:start + batch_size]
+            obs = obs_batch[idx]
+            actions = actions_batch[idx]
+            current_E = current_E_batch[idx]
+            next_E = next_E_batch[idx]
+            batch_len = len(idx)
+            
+            # One-hot encode actions
+            action_oh = F.one_hot(actions, num_classes=agent.action_dim).float()
+            
+            # Compute harm_t for each sample based on pr_flag
+            harm_values = []
+            for i in idx.tolist():
+                if pr_flags[i] == 'harm':
+                    harm_values.append(victim_distress)
+                else:
+                    harm_values.append(0.0)
+            harm_tensor = torch.tensor(harm_values, device=device).unsqueeze(1)
+            
+            # Compute target delta_E from actual observations
+            # delta_E = next_E - γ_E * current_E
+            target_delta_E = next_E - agent.gamma_E * current_E
+            
+            # Forward pass through iae_dynamics
+            dynamics_input = torch.cat([obs, action_oh, harm_tensor], dim=-1)
+            pred_delta_E = agent.iae_dynamics(dynamics_input)
+            
+            # Loss
+            loss = F.mse_loss(pred_delta_E, target_delta_E.detach())
+            
+            optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(agent.iae_dynamics.parameters(), 1.0)
+            optimizer.step()
+            
+            total_loss += loss.item()
+            n_updates += 1
+    
+    return total_loss / max(n_updates, 1)
+
+
+# =============================================================================
 # FORECASTER TRAINING
 # =============================================================================
 
@@ -667,7 +744,8 @@ def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
 # PPO UPDATE (with action masking)
 # =============================================================================
 
-def ppo_update(agent, optimizer, forecaster_optimizer, rollout_data, returns, advantages, 
+def ppo_update(agent, optimizer, forecaster_optimizer, iae_dynamics_optimizer, 
+               rollout_data, returns, advantages, 
                scheduler, global_step, cfg, device, scaler=None):
     """PPO update with action masking for invalid moral actions.
     
@@ -793,12 +871,18 @@ def ppo_update(agent, optimizer, forecaster_optimizer, rollout_data, returns, ad
     # FIX BUG-010: Use separate forecaster_optimizer
     forecast_loss = train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device)
     
+    # FIX BUG-024: Train IAE dynamics on actual observed transitions
+    iae_dynamics_loss = 0.0
+    if iae_dynamics_optimizer is not None:
+        iae_dynamics_loss = train_iae_dynamics(agent, iae_dynamics_optimizer, rollout_data, cfg, device)
+    
     return {
         'policy_loss': total_policy_loss / max(n_updates, 1),
         'value_loss': total_value_loss / max(n_updates, 1),
         'entropy': total_entropy / max(n_updates, 1),
         'entropy_coef': entropy_coef,
         'forecast_loss': forecast_loss,
+        'iae_dynamics_loss': iae_dynamics_loss,
         'grad_norm': grad_norm.item() if isinstance(grad_norm, torch.Tensor) else grad_norm,
     }
 
@@ -1156,9 +1240,10 @@ def main():
         print(f"\n[train] Visualization: NOT AVAILABLE (module not installed)")
     
     # FIX BUG-010: Separate optimizers for policy and forecaster
-    # Policy/Value optimizer
+    # Policy/Value optimizer (excludes iae_dynamics and forecaster)
     policy_params = []
     forecaster_params = []
+    iae_dynamics_params = []
     seen_ids = set()
     
     for name, p in agent.named_parameters():
@@ -1168,9 +1253,13 @@ def main():
             continue
         seen_ids.add(id(p))
         
-        # Separate forecaster params from policy/value params
-        if 'forecast_net' in name or 'forecast_net_target' in name:
+        # Separate params by network
+        if 'forecast_net' in name and 'target' not in name:
             forecaster_params.append(p)
+        elif 'iae_dynamics' in name:
+            iae_dynamics_params.append(p)
+        elif 'forecast_net_target' in name:
+            pass  # Target network has no gradients
         else:
             policy_params.append(p)
     
@@ -1179,6 +1268,11 @@ def main():
     # FIX BUG-010: Separate forecaster optimizer with potentially different LR
     forecaster_lr = cfg.get('forecaster_lr', cfg.get('lr', 3e-4))
     forecaster_optimizer = torch.optim.Adam(forecaster_params, lr=forecaster_lr) if forecaster_params else None
+    
+    # FIX BUG-024: Separate IAE dynamics optimizer
+    iae_dynamics_lr = cfg.get('iae_dynamics_lr', cfg.get('lr', 3e-4))
+    iae_dynamics_optimizer = torch.optim.Adam(iae_dynamics_params, lr=iae_dynamics_lr) if iae_dynamics_params else None
+    print(f"  IAE dynamics optimizer: {'ENABLED' if iae_dynamics_optimizer else 'N/A'}")
     
     # Schedule manager
     scheduler = ScheduleManager(cfg, args.total_steps)
@@ -1224,9 +1318,10 @@ def main():
             rollout_data, scheduler, global_step, cfg
         )
         
-        # FIX BUG-010: Pass separate forecaster_optimizer
+        # FIX BUG-010 & BUG-024: Pass separate optimizers
         update_metrics = ppo_update(
-            agent, optimizer, forecaster_optimizer, rollout_data, returns, advantages,
+            agent, optimizer, forecaster_optimizer, iae_dynamics_optimizer,
+            rollout_data, returns, advantages,
             scheduler, global_step, cfg, device, scaler=scaler
         )
         
