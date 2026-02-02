@@ -295,6 +295,7 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
         'dones': [],
         'ar_penalties': [],
         'next_observations': [],
+        'current_E': [],  # FIX BUG-016: Store E at time of each observation
         'next_E': [],
         'pr_flags': [],
         'can_interact': [],
@@ -419,6 +420,10 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
         harm_t = info.get('harm_t', 0.0)  # harm_t > 0 when stealing
         harm_tensor = torch.tensor([harm_t], dtype=torch.float32, device=device)
         next_obs_tensor = torch.tensor(next_obs, dtype=torch.float32).unsqueeze(0).to(device)
+        
+        # FIX BUG-020: Store current E BEFORE IAE update (the E used for this decision)
+        current_E_for_step = agent.E.clone().detach().cpu()
+        
         agent.update_iae(next_obs_tensor, action_tensor, harm_tensor)
         agent.E.data = scheduler.clip_iae(agent.E.data)
         
@@ -459,7 +464,8 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
         rollout_data['dones'].append(terminated or truncated)
         rollout_data['ar_penalties'].append(ar_penalty)
         rollout_data['next_observations'].append(torch.tensor(next_obs, dtype=torch.float32).cpu())
-        rollout_data['next_E'].append(agent.E.clone().detach().cpu())
+        rollout_data['current_E'].append(current_E_for_step)  # E at decision time
+        rollout_data['next_E'].append(agent.E.clone().detach().cpu())  # E after update
         rollout_data['pr_flags'].append(info.get('pr_flag', None))
         rollout_data['can_interact'].append(can_interact)
         rollout_data['action_masks'].append(action_mask)
@@ -524,6 +530,8 @@ def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
     not just the action taken. We compute counterfactual targets using the
     known IAE dynamics: E_{t+1} = γ_E * E_t + g_φ(obs, action, harm_t)
     
+    FIX BUG-015: Use per-sample E values from rollout, not end-of-rollout E.
+    
     For each sample, we generate targets for ALL 6 actions:
     - Actions 0-3 (movement): harm_t = 0
     - Action 4 (HELP): harm_t = 0  
@@ -537,6 +545,8 @@ def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
         return 0.0
     
     obs_batch = torch.stack(rollout_data['observations']).to(device).detach()
+    # FIX BUG-015: Use per-sample E values from rollout
+    E_batch = torch.stack(rollout_data['current_E']).to(device).detach()
     
     # Get victim_distress for counterfactual STEAL targets
     victim_distress = cfg.get('victim_distress', 3.0)
@@ -545,8 +555,6 @@ def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
     n_epochs = 3
     total_loss = 0.0
     n_updates = 0
-    
-    current_E_base = agent.E.clone().detach()
     
     obs_dim = obs_batch.shape[1]
     expected_base_dim = obs_dim + agent.action_dim + agent.iae_dim
@@ -561,17 +569,25 @@ def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
     forecaster_input_dim = first_layer.in_features if first_layer is not None else expected_base_dim
     use_hebbian_in_forecaster = (forecaster_input_dim > expected_base_dim) and agent.use_hebbian
     
-    if use_hebbian_in_forecaster:
-        with torch.no_grad():
-            heb_read_base = agent.hebbian.read(current_E_base).detach().view(-1)
-    
     for epoch in range(n_epochs):
         indices = torch.randperm(n_samples, device=device)
         
         for start in range(0, n_samples - batch_size + 1, batch_size):
             idx = indices[start:start + batch_size]
             obs = obs_batch[idx]
+            # FIX BUG-015: Get per-sample E for this batch
+            E_samples = E_batch[idx]
             batch_len = len(idx)
+            
+            # Compute Hebbian readouts for each sample if needed
+            if use_hebbian_in_forecaster:
+                with torch.no_grad():
+                    # Hebbian read for each sample's E
+                    heb_reads = []
+                    for i in range(batch_len):
+                        heb_read_i = agent.hebbian.read(E_samples[i]).view(-1)
+                        heb_reads.append(heb_read_i)
+                    heb_batch = torch.stack(heb_reads)
             
             # FIX BUG-011: Train on ALL actions, not just the action taken
             # This teaches the forecaster proper counterfactuals
@@ -594,20 +610,19 @@ def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
                 with torch.no_grad():
                     dynamics_input = torch.cat([obs, action_oh, harm_tensor], dim=-1)
                     delta_E = agent.iae_dynamics(dynamics_input)
-                    target_E = agent.gamma_E * current_E_base.unsqueeze(0) + delta_E
+                    # FIX BUG-015: Use per-sample E, not single E for all
+                    target_E = agent.gamma_E * E_samples + delta_E
                 
-                # Forecaster input
-                context_E = current_E_base.unsqueeze(0).expand(batch_len, -1)
-                forecast_input = torch.cat([obs, action_oh, context_E], dim=-1)
+                # Forecaster input with per-sample E
+                forecast_input = torch.cat([obs, action_oh, E_samples], dim=-1)
                 
                 if use_hebbian_in_forecaster:
                     if hasattr(agent, 'hebbian_gate'):
-                        gate = agent.hebbian_gate(context_E)
+                        gate = agent.hebbian_gate(E_samples)
                     else:
                         gate = torch.ones(batch_len, 1, device=device)
                     
-                    heb_expanded = heb_read_base.unsqueeze(0).expand(batch_len, -1)
-                    gated_heb = gate * heb_expanded
+                    gated_heb = gate * heb_batch
                     forecast_input = torch.cat([forecast_input, gated_heb], dim=-1)
                 
                 if forecast_input.shape[1] != forecaster_input_dim:
@@ -671,11 +686,12 @@ def ppo_update(agent, optimizer, forecaster_optimizer, rollout_data, returns, ad
     returns_batch = torch.tensor(returns, dtype=torch.float32, device=device)
     advantages_batch = torch.tensor(advantages, dtype=torch.float32, device=device)
     action_masks_batch = torch.stack(rollout_data['action_masks']).to(device, non_blocking=True)
+    # FIX BUG-016: Use per-step E values, not end-of-rollout E
+    E_batch = torch.stack(rollout_data['current_E']).to(device, non_blocking=True).detach()
     
     advantages_batch = (advantages_batch - advantages_batch.mean()) / (advantages_batch.std() + 1e-8)
     
     n_samples = len(obs_batch)
-    current_E = agent.E.clone().detach()
     
     total_policy_loss = 0
     total_value_loss = 0
@@ -695,19 +711,26 @@ def ppo_update(agent, optimizer, forecaster_optimizer, rollout_data, returns, ad
             ret = returns_batch[idx]
             adv = advantages_batch[idx]
             action_masks = action_masks_batch[idx]
+            # FIX BUG-016: Use per-sample E values from rollout collection
+            E_samples = E_batch[idx]
             
             # Mixed precision forward pass
             with autocast(device_type='cuda', enabled=use_amp):
-                # Apply attention using stored E from rollout (not current agent.E)
-                # This avoids graph issues and uses the correct E for each sample
+                # FIX BUG-018: Apply attention with correct per-sample E
                 if agent.use_attention:
-                    # Use AttentionGating directly with stored E
-                    obs_att = agent.attention(current_E, obs)
+                    # Attention expects (E, obs) - need to handle batched case
+                    # For batch, we apply attention per-sample or use mean E
+                    # Using per-sample E for correctness
+                    obs_att_list = []
+                    for i in range(len(idx)):
+                        obs_att_i = agent.attention(E_samples[i], obs[i:i+1])
+                        obs_att_list.append(obs_att_i)
+                    obs_att = torch.cat(obs_att_list, dim=0)
                 else:
                     obs_att = obs
                 
-                E_expanded = current_E.unsqueeze(0).expand(len(idx), -1)
-                policy_input = torch.cat([obs_att, E_expanded], dim=-1)
+                # FIX BUG-016: Use per-sample E, not single E for all
+                policy_input = torch.cat([obs_att, E_samples], dim=-1)
                 
                 logits = agent.policy_net(policy_input)
                 
