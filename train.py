@@ -625,8 +625,15 @@ def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
                     gated_heb = gate * heb_batch
                     forecast_input = torch.cat([forecast_input, gated_heb], dim=-1)
                 
-                if forecast_input.shape[1] != forecaster_input_dim:
-                    continue
+                # FIX BUG-021: Pad input if model expects extra dimension (legacy reward placeholder)
+                # instead of skipping the sample
+                if forecast_input.shape[1] < forecaster_input_dim:
+                    padding_size = forecaster_input_dim - forecast_input.shape[1]
+                    padding = torch.zeros(batch_len, padding_size, device=device)
+                    forecast_input = torch.cat([forecast_input, padding], dim=-1)
+                elif forecast_input.shape[1] > forecaster_input_dim:
+                    # Trim if too large (shouldn't happen but safety check)
+                    forecast_input = forecast_input[:, :forecaster_input_dim]
                 
                 pred_E = agent.forecast_net(forecast_input)
                 loss = F.smooth_l1_loss(pred_E, target_E)
@@ -716,16 +723,12 @@ def ppo_update(agent, optimizer, forecaster_optimizer, rollout_data, returns, ad
             
             # Mixed precision forward pass
             with autocast(device_type='cuda', enabled=use_amp):
-                # FIX BUG-018: Apply attention with correct per-sample E
+                # FIX BUG-018 & BUG-023: Apply attention with correct per-sample E (batched)
                 if agent.use_attention:
-                    # Attention expects (E, obs) - need to handle batched case
-                    # For batch, we apply attention per-sample or use mean E
-                    # Using per-sample E for correctness
-                    obs_att_list = []
-                    for i in range(len(idx)):
-                        obs_att_i = agent.attention(E_samples[i], obs[i:i+1])
-                        obs_att_list.append(obs_att_i)
-                    obs_att = torch.cat(obs_att_list, dim=0)
+                    # Batch attention: AttentionGating can handle batched inputs
+                    # E_samples: (batch, iae_dim), obs: (batch, obs_dim)
+                    # AttentionGating.forward expects (E, obs) both potentially batched
+                    obs_att = agent.attention(E_samples, obs)
                 else:
                     obs_att = obs
                 
