@@ -1,0 +1,42 @@
+# PPO Baseline Config for ALA @ AAMAS 2026 Paper
+# Pure PPO without alignment mechanisms
+
+# Architecture
+obs_dim: 16
+act_dim: 6
+hidden_dim: 128
+
+# IAE disabled for baseline
+iae_dim: 16  # Still need this for interface but won't be used
+tau_iae: 0.0  # DISABLE IAE updates
+
+# Disable all alignment mechanisms
+lambda_reg: 0.0           # NO alignment regret penalty
+lambda_reg_warmup: 0      # No warmup needed
+use_attention: false      # No attention gating
+use_hebbian: false        # No Hebbian memory
+use_diffusion: false      # No graph diffusion
+
+# Pure PPO hyperparameters
+lr: 3.0e-4
+gamma: 0.99
+gae_lambda: 0.95
+clip_eps: 0.2
+vf_coef: 0.5
+
+# Entropy (pure PPO schedule)
+entropy_coef: 0.01        # Standard PPO entropy
+entropy_min: 0.001
+entropy_decay_steps: 500000
+
+# Training
+rollout_length: 2048
+minibatch_size: 64
+ppo_epochs: 4
+
+# No forecaster needed for baseline
+forecast_horizon: 0
+
+# Spectral normalization (keep for stability)
+use_spectral_norm: true
+spectral_norm_bound: 1.0

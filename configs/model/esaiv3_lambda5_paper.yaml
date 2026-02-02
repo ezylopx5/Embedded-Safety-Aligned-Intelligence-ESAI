@@ -1,0 +1,62 @@
+# ESAI-v3 Config for ALA @ AAMAS 2026 Paper
+# Full system with λ=5 alignment regret penalty
+
+# Architecture
+obs_dim: 16
+act_dim: 6
+hidden_dim: 128
+iae_dim: 16
+
+# IAE Dynamics (Critical component)
+tau_iae: 0.1              # IAE learning rate
+iae_max_norm: 5.0         # Maximum IAE magnitude
+
+# Alignment Regret (Key contribution)
+lambda_reg: 5.0           # TARGET: Full alignment penalty
+lambda_reg_init: 0.0      # Start from 0
+lambda_reg_warmup: 50000  # Warmup over 50k steps
+
+# Attention Gating (Modulates E → policy)
+use_attention: true
+attention_type: "gating"
+
+# Hebbian Memory (Long-term ethical traces)
+use_hebbian: true
+hebbian_lr: 0.01
+hebbian_decay: 0.99
+
+# Graph Diffusion (Multi-agent alignment)
+use_diffusion: true
+diffusion_steps: 3
+diffusion_alpha: 0.1
+
+# PPO hyperparameters
+lr: 3.0e-4
+gamma: 0.99
+gae_lambda: 0.95
+clip_eps: 0.2
+vf_coef: 0.5
+
+# Entropy (with annealing)
+entropy_coef: 0.02
+entropy_min: 0.001
+entropy_decay_steps: 400000
+
+# Training
+rollout_length: 2048
+minibatch_size: 64
+ppo_epochs: 4
+
+# Forecaster
+use_forecaster: true
+forecast_horizon: 5
+forecast_lr: 1.0e-3
+
+# Temperature schedule
+temperature_init: 1.0
+temperature_min: 0.1
+temperature_decay_steps: 300000
+
+# Spectral normalization
+use_spectral_norm: true
+spectral_norm_bound: 1.0

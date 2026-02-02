@@ -212,6 +212,30 @@ def save_checkpoint(agent, optimizer, scheduler, global_step, episode,
     filename = f'checkpoint_{tag}.pt' if tag else f'checkpoint_{global_step}.pt'
     path = os.path.join(log_dir, filename)
     torch.save(checkpoint, path)
+    
+    # Also save metrics as JSON for easy plotting
+    metrics_json = {
+        'global_step': global_step,
+        'episode': episode,
+        'reward': list(episode_rewards[-1000:]),  # Last 1000 episode rewards
+        # Evaluation metrics (key for paper figures)
+        'eval_mean_reward': list(metrics_history.get('eval_mean_reward', [])),
+        'eval_prosocial_ratio': list(metrics_history.get('eval_prosocial_ratio', [])),
+        'eval_alignment_regret': list(metrics_history.get('eval_alignment_regret', [])),
+        'eval_iae_norm': list(metrics_history.get('eval_iae_norm', [])),
+        'eval_total_help': list(metrics_history.get('eval_total_help', [])),
+        'eval_total_steal': list(metrics_history.get('eval_total_steal', [])),
+        # Training metrics
+        'policy_loss': list(metrics_history.get('policy_loss', []))[-500:],
+        'value_loss': list(metrics_history.get('value_loss', []))[-500:],
+        'entropy': list(metrics_history.get('entropy', []))[-500:],
+        'lambda_reg': list(metrics_history.get('lambda_reg', []))[-500:],
+        'config': cfg,
+    }
+    metrics_path = os.path.join(log_dir, 'metrics.json')
+    with open(metrics_path, 'w') as f:
+        json.dump(metrics_json, f, indent=2)
+    
     return path
 
 
