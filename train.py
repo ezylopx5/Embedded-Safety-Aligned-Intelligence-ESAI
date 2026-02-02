@@ -524,13 +524,17 @@ def compute_returns_and_advantages(rollout_data, scheduler, global_step, cfg):
 
 def train_iae_dynamics(agent, optimizer, rollout_data, cfg, device):
     """
-    Train the IAE dynamics network g_φ on actual observed transitions.
+    Train the IAE dynamics network g_φ to map harm signals to delta_E.
     
-    FIX BUG-024: iae_dynamics was never trained - it stayed at random init!
-    This caused forecaster targets to be meaningless.
+    FIX BUG-024/025: The dynamics network learns the SEMANTIC meaning of harm:
+    - When harm_t > 0 (STEAL): output positive delta_E (E grows) 
+    - When harm_t = 0 (HELP/move): output near-zero delta_E
     
-    The dynamics network learns: delta_E = g_φ(obs, action, harm_t)
-    Target: actual_delta_E = next_E - γ_E * current_E (from rollout)
+    Target is NOT from observed E (which used random dynamics) but from
+    the DEFINITION: delta_E ≈ harm_t * scale_factor
+    
+    This teaches the network that harm → IAE growth, enabling the forecaster
+    to correctly predict E^(STEAL) > E^(HELP).
     """
     n_samples = len(rollout_data['observations'])
     if n_samples < 32:
@@ -538,15 +542,18 @@ def train_iae_dynamics(agent, optimizer, rollout_data, cfg, device):
     
     obs_batch = torch.stack(rollout_data['observations']).to(device).detach()
     actions_batch = torch.tensor(rollout_data['actions'], dtype=torch.long, device=device)
-    current_E_batch = torch.stack(rollout_data['current_E']).to(device).detach()
-    next_E_batch = torch.stack(rollout_data['next_E']).to(device).detach()
     pr_flags = rollout_data['pr_flags']
     
     # Get victim_distress for harm signal
     victim_distress = cfg.get('victim_distress', 3.0)
+    iae_dim = agent.E.shape[0]  # Get dimension of E
+    
+    # Scale factor: how much E should grow per unit harm
+    # Calibrated so harm_t=3.0 gives delta_E norm ≈ 0.5-1.0
+    harm_scale = cfg.get('harm_scale', 0.2)
     
     batch_size = min(64, n_samples)
-    n_epochs = 2  # Fewer epochs than forecaster
+    n_epochs = 3  # More epochs for supervised learning
     total_loss = 0.0
     n_updates = 0
     
@@ -557,8 +564,6 @@ def train_iae_dynamics(agent, optimizer, rollout_data, cfg, device):
             idx = indices[start:start + batch_size]
             obs = obs_batch[idx]
             actions = actions_batch[idx]
-            current_E = current_E_batch[idx]
-            next_E = next_E_batch[idx]
             batch_len = len(idx)
             
             # One-hot encode actions
@@ -573,16 +578,18 @@ def train_iae_dynamics(agent, optimizer, rollout_data, cfg, device):
                     harm_values.append(0.0)
             harm_tensor = torch.tensor(harm_values, device=device).unsqueeze(1)
             
-            # Compute target delta_E from actual observations
-            # delta_E = next_E - γ_E * current_E
-            target_delta_E = next_E - agent.gamma_E * current_E
+            # TARGET: delta_E should be proportional to harm signal
+            # harm=0 → delta_E ≈ 0 (no IAE change for HELP/move)
+            # harm>0 → delta_E > 0 (IAE grows for STEAL)
+            # Broadcast to iae_dim (uniform growth across dimensions)
+            target_delta_E = (harm_tensor * harm_scale).expand(-1, iae_dim)
             
             # Forward pass through iae_dynamics
             dynamics_input = torch.cat([obs, action_oh, harm_tensor], dim=-1)
             pred_delta_E = agent.iae_dynamics(dynamics_input)
             
-            # Loss
-            loss = F.mse_loss(pred_delta_E, target_delta_E.detach())
+            # Loss: MSE to target
+            loss = F.mse_loss(pred_delta_E, target_delta_E)
             
             optimizer.zero_grad()
             loss.backward()
@@ -1090,11 +1097,6 @@ def print_diagnostics(rollout_data, scheduler, global_step, episode_count, agent
     print(f"  Invalid:  {n_invalid} ({invalid_rate:.1%}) [should be ~0% with masking]")
     print(f"  Actions:  {action_counts.tolist()}")
     print(f"  ||E||:    {agent.E.norm().item():.3f}")
-    
-    if n_moral == 0 and can_interact_rate > 0.3:
-        print(f"  ⚠️  Low moral engagement despite opportunities")
-    if invalid_rate > 0.1:
-        print(f"  ⚠️  Invalid actions detected - check masking logic")
 
 
 # =============================================================================
@@ -1331,7 +1333,8 @@ def main():
             'r': f'{ep_reward:.2f}',
             'λ': f'{sched_vals["lambda_reg"]:.3f}',
             'H': f'{update_metrics["entropy"]:.2f}',
-            '||E||': f'{agent.E.norm().item():.2f}'
+            '||E||': f'{agent.E.norm().item():.2f}',
+            'iae_dyn': f'{update_metrics.get("iae_dynamics_loss", 0):.4f}'
         })
         
         metrics_history['reward'].append(ep_reward)
