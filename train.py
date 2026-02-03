@@ -875,13 +875,15 @@ def ppo_update(agent, optimizer, forecaster_optimizer, iae_dynamics_optimizer,
             total_entropy += entropy.item()
             n_updates += 1
     
-    # FIX BUG-010: Use separate forecaster_optimizer
-    forecast_loss = train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device)
-    
-    # FIX BUG-024: Train IAE dynamics on actual observed transitions
+    # FIX BUG-026: Train iae_dynamics FIRST so forecaster uses updated dynamics
+    # Order matters: iae_dynamics learns harm→delta_E mapping, then forecaster
+    # uses that mapping to generate counterfactual targets
     iae_dynamics_loss = 0.0
     if iae_dynamics_optimizer is not None:
         iae_dynamics_loss = train_iae_dynamics(agent, iae_dynamics_optimizer, rollout_data, cfg, device)
+    
+    # FIX BUG-010: Use separate forecaster_optimizer (now uses trained iae_dynamics)
+    forecast_loss = train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device)
     
     return {
         'policy_loss': total_policy_loss / max(n_updates, 1),
