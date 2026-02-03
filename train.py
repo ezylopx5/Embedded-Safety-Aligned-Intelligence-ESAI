@@ -528,34 +528,32 @@ def train_iae_dynamics(agent, optimizer, rollout_data, cfg, device):
     """
     Train the IAE dynamics network g_φ to map harm signals to delta_E.
     
-    FIX BUG-024/025: The dynamics network learns the SEMANTIC meaning of harm:
-    - When harm_t > 0 (STEAL): output positive delta_E (E grows) 
-    - When harm_t = 0 (HELP/move): output near-zero delta_E
+    FIX BUG-028: Train on COUNTERFACTUAL actions, not just observed ones.
+    If agent only chooses STEAL, training only sees harm_t=3.0.
+    The network can't learn that harm_t=0 → delta_E=0.
     
-    Target is NOT from observed E (which used random dynamics) but from
-    the DEFINITION: delta_E ≈ harm_t * scale_factor
+    Solution: For each observation, train on ALL actions:
+    - Actions 0-4 (move/HELP): harm_t=0 → target delta_E=0
+    - Action 5 (STEAL): harm_t=victim_distress → target delta_E>0
     
-    This teaches the network that harm → IAE growth, enabling the forecaster
-    to correctly predict E^(STEAL) > E^(HELP).
+    This teaches the network the full harm→delta_E mapping regardless
+    of which actions the policy actually takes.
     """
     n_samples = len(rollout_data['observations'])
     if n_samples < 32:
         return 0.0
     
     obs_batch = torch.stack(rollout_data['observations']).to(device).detach()
-    actions_batch = torch.tensor(rollout_data['actions'], dtype=torch.long, device=device)
-    pr_flags = rollout_data['pr_flags']
     
     # Get victim_distress for harm signal
     victim_distress = cfg.get('victim_distress', 3.0)
-    iae_dim = agent.E.shape[0]  # Get dimension of E
+    iae_dim = agent.E.shape[0]
     
     # Scale factor: how much E should grow per unit harm
-    # Calibrated so harm_t=3.0 gives delta_E norm ≈ 0.5-1.0
     harm_scale = cfg.get('harm_scale', 0.2)
     
     batch_size = min(64, n_samples)
-    n_epochs = 3  # More epochs for supervised learning
+    n_epochs = 3
     total_loss = 0.0
     n_updates = 0
     
@@ -565,33 +563,37 @@ def train_iae_dynamics(agent, optimizer, rollout_data, cfg, device):
         for start in range(0, n_samples - batch_size + 1, batch_size):
             idx = indices[start:start + batch_size]
             obs = obs_batch[idx]
-            actions = actions_batch[idx]
             batch_len = len(idx)
             
-            # One-hot encode actions
-            action_oh = F.one_hot(actions, num_classes=agent.action_dim).float()
+            # FIX BUG-028: Train on ALL actions, not just observed action
+            # This ensures network sees both harm=0 and harm>0 examples
+            all_losses = []
             
-            # Compute harm_t for each sample based on pr_flag
-            harm_values = []
-            for i in idx.tolist():
-                if pr_flags[i] == 'harm':
-                    harm_values.append(victim_distress)
-                else:
-                    harm_values.append(0.0)
-            harm_tensor = torch.tensor(harm_values, device=device).unsqueeze(1)
+            for action_id in range(agent.action_dim):
+                # Determine harm_t based on action (counterfactual)
+                if action_id == 5:  # STEAL
+                    harm_t = victim_distress
+                else:  # Movement (0-3) or HELP (4)
+                    harm_t = 0.0
+                
+                # Create batch tensors
+                action_oh = torch.zeros(batch_len, agent.action_dim, device=device)
+                action_oh[:, action_id] = 1.0
+                harm_tensor = torch.full((batch_len, 1), harm_t, device=device)
+                
+                # TARGET: delta_E = harm_t * scale
+                target_delta_E = (harm_tensor * harm_scale).expand(-1, iae_dim)
+                
+                # Forward pass
+                dynamics_input = torch.cat([obs, action_oh, harm_tensor], dim=-1)
+                pred_delta_E = agent.iae_dynamics(dynamics_input)
+                
+                # Loss for this action
+                action_loss = F.mse_loss(pred_delta_E, target_delta_E)
+                all_losses.append(action_loss)
             
-            # TARGET: delta_E should be proportional to harm signal
-            # harm=0 → delta_E ≈ 0 (no IAE change for HELP/move)
-            # harm>0 → delta_E > 0 (IAE grows for STEAL)
-            # Broadcast to iae_dim (uniform growth across dimensions)
-            target_delta_E = (harm_tensor * harm_scale).expand(-1, iae_dim)
-            
-            # Forward pass through iae_dynamics
-            dynamics_input = torch.cat([obs, action_oh, harm_tensor], dim=-1)
-            pred_delta_E = agent.iae_dynamics(dynamics_input)
-            
-            # Loss: MSE to target
-            loss = F.mse_loss(pred_delta_E, target_delta_E)
+            # Average loss over all actions
+            loss = torch.stack(all_losses).mean()
             
             optimizer.zero_grad()
             loss.backward()
