@@ -390,7 +390,9 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
                 
                 E_preds = torch.stack(E_preds)
                 agent.alignment_loss.temperature = agent.temperature
-                AR_t = agent.alignment_loss(E_current=agent.E, E_preds=E_preds, E_neighbors=None)
+                # FIX BUG-027: Pass the action index so AR compares E^(a_t) vs E^ref
+                # Paper Eq. 9: AR_t = ||E^(a_t)_{t+1} - E^ref_{t+1}||²
+                AR_t = agent.alignment_loss(E_preds=E_preds, action_taken=action.item(), E_neighbors=None)
             
             ar_penalty = AR_t.item() if isinstance(AR_t, torch.Tensor) else AR_t
             ar_penalty = scheduler.clip_ar(ar_penalty)

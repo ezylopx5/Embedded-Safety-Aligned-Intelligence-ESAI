@@ -76,14 +76,20 @@ class AlignmentLoss(nn.Module):
         else:
             return E_ref
     
-    def forward(self, E_current: torch.Tensor, E_preds: torch.Tensor,
+    def forward(self, E_preds: torch.Tensor, action_taken: int = None,
                 E_neighbors: torch.Tensor = None, return_info=False):
         """
-        Compute alignment regret (Equation 9).
+        Compute alignment regret (Equation 9 from paper).
+        
+        FIX BUG-027: Paper Eq. 9 is:
+          AR_t = ||E_{t+1} - E^ref_{t+1}||² + κ·neighbor_harm
+        
+        Where E_{t+1} is the predicted IAE for the action taken.
+        NOT E_current (which was wrong - comparing current state to future reference).
         
         Args:
-            E_current: Current IAE (iae_dim,)
-            E_preds: Predicted IAEs for candidate actions (num_actions, iae_dim)
+            E_preds: Predicted IAEs for ALL candidate actions (num_actions, iae_dim)
+            action_taken: Index of action being evaluated (if None, uses mean over all)
             E_neighbors: Neighbors' IAEs (num_neighbors, iae_dim) [optional]
             return_info: If True, return diagnostic information
         
@@ -92,13 +98,24 @@ class AlignmentLoss(nn.Module):
             info: Diagnostic dict (optional)
         """
         # Compute reference embedding (Equations 7-8)
+        # E^ref = softmin-weighted average of predicted Es
         E_ref, weights = self.compute_softmin_reference(E_preds, return_weights=True)
         
-        # Primary regret term: ||E_t - E^ref||²
-        self_regret = torch.sum((E_current - E_ref) ** 2)
+        # FIX BUG-027: Use E^(a_t) - the predicted E for the action taken
+        # NOT E_current (the state BEFORE action)
+        if action_taken is not None:
+            E_chosen = E_preds[action_taken]
+        else:
+            # Fallback: use expected E under current policy (weighted by softmin)
+            # This is a softer version when action isn't specified
+            E_chosen = E_ref
+        
+        # Primary regret term (Paper Eq. 9): ||E^(a_t) - E^ref||²
+        # Penalizes choosing action whose predicted E is far from the best-case E
+        self_regret = torch.sum((E_chosen - E_ref) ** 2)
         
         # Neighbor harm penalty (multi-agent term)
-        neighbor_harm = torch.tensor(0.0, device=E_current.device)
+        neighbor_harm = torch.tensor(0.0, device=E_preds.device)
         if E_neighbors is not None and len(E_neighbors) > 0:
             # Average L2 norm of neighbor IAEs
             neighbor_norms = torch.norm(E_neighbors, dim=1, p=2)
@@ -113,6 +130,7 @@ class AlignmentLoss(nn.Module):
             
             info = {
                 'E_ref': E_ref.detach(),
+                'E_chosen': E_chosen.detach(),
                 'weights': weights.detach(),
                 'R_values': R_values.detach(),
                 'self_regret': self_regret.detach().item(),

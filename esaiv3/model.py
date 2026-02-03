@@ -520,12 +520,12 @@ class ESAIv3Agent(nn.Module):
             # Update alignment loss temperature
             self.alignment_loss.temperature = self.temperature
             
-            # Compute alignment regret (state-based AR)
-            # AR = ||E_current - E_ref||² where E_ref is the softmin-weighted reference
+            # FIX BUG-027: Compute alignment regret using predicted E for chosen action
+            # Paper Eq. 9: AR = ||E^(a_t) - E^ref||² where E^ref is softmin-weighted
             with torch.no_grad():
                 AR_t = self.alignment_loss(
-                    E_current=self.E,
                     E_preds=E_preds,
+                    action_taken=action.item() if isinstance(action, torch.Tensor) else action,
                     E_neighbors=None
                 )
         
