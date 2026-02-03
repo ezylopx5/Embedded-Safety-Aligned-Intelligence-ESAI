@@ -22,13 +22,14 @@ use_alignment_regret: true
 # -----------------------------------------------------------------------------
 gamma_E: 0.9
 alpha_diffusion: 0.05
+harm_scale: 0.5                # FIX: Increased from 0.2 for stronger harm signal
 
 # -----------------------------------------------------------------------------
 # Alignment Loss (with scheduling)
 # -----------------------------------------------------------------------------
-lambda_reg: 2               # Final value after warmup+ramp
-lambda_warmup_steps: 50000     # Steps with λ=0 (learn task first)
-lambda_ramp_steps: 100000      # Steps to ramp 0 → lambda_reg
+lambda_reg: 5.0                # FIX: Increased to overcome +5 STEAL reward
+lambda_warmup_steps: 5000      # FIX BUG-029: Reduced from 50k - shorter warmup
+lambda_ramp_steps: 50000       # FIX BUG-029: Reduced from 100k - faster ramp
 
 kappa: 0.05                    # Neighbor harm weight
 
