@@ -278,21 +278,23 @@ class ESAIv3Agent(nn.Module):
         # CRITICAL FIX: Add alignment regret components
         if use_alignment_regret:
             # Forecaster network predicts E^(a)_{t+1} for each action
-            # FIX BUG-003: REMOVED reward from input to avoid train/inference mismatch
-            # At inference we don't know the reward yet, so forecaster should not depend on it
-            # Input: obs + action_onehot + current_E [+ hebbian_readout if enabled]
-            forecaster_input_dim = obs_dim + action_dim + iae_dim  # NO +1 for reward
+            # FIX BUG-031: Added harm_t to input - forecaster MUST see harm to 
+            # distinguish between actions that cause harm vs not
+            # Input: obs + action_onehot + current_E + harm_t [+ hebbian_readout if enabled]
+            forecaster_input_dim = obs_dim + action_dim + iae_dim + 1  # +1 for harm_t
             
             if use_hebbian:
                 forecaster_input_dim += iae_dim  # Add Hebbian readout dimension
             
+            # FIX BUG-035: REMOVED Tanh - forecaster must output values that can match
+            # E which grows up to ||E||=10.0 (clipping limit). Tanh caps at ±1.
             self.forecast_net = nn.Sequential(
                 nn.Linear(forecaster_input_dim, hidden_dim),
                 nn.ReLU(),
                 nn.Linear(hidden_dim, hidden_dim),
                 nn.ReLU(),
-                nn.Linear(hidden_dim, iae_dim),
-                nn.Tanh()  # Bounded output for stability
+                nn.Linear(hidden_dim, iae_dim)
+                # NO Tanh - E can be in range [-10, 10] per dimension
             )
             
             # EMA target network (critical for stability)
@@ -494,17 +496,25 @@ class ESAIv3Agent(nn.Module):
             if self.use_hebbian and self.hebbian is not None:
                 hebbian_readout = self.hebbian.read(self.E)
             
+            # Get victim_distress for counterfactual harm (default if not set)
+            victim_distress = getattr(self, 'victim_distress', 3.0)
+            
             for a in range(self.action_dim):
                 # One-hot encode action
                 action_onehot = torch.zeros(self.action_dim, device=obs.device)
                 action_onehot[a] = 1.0
                 
-                # FIX BUG-003: Forecast input WITHOUT reward (removed placeholder)
-                # Input: obs + action + current_E [+ hebbian_readout]
+                # FIX BUG-031: Include counterfactual harm for this action
+                # STEAL (a=5) causes harm, other actions don't
+                cf_harm = victim_distress if a == 5 else 0.0
+                harm_tensor = torch.tensor([cf_harm], device=obs.device)
+                
+                # Input: obs + action + E + harm [+ hebbian]
                 input_parts = [
                     obs_flat,
                     action_onehot,
-                    self.E
+                    self.E,
+                    harm_tensor
                 ]
                 if hebbian_readout is not None:
                     input_parts.append(hebbian_readout.squeeze())

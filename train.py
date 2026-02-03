@@ -437,6 +437,9 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
                 if agent.use_hebbian and agent.hebbian is not None:
                     hebbian_readout = agent.hebbian.read(agent.E)
                 
+                # Get victim_distress from env for counterfactual harm computation
+                victim_distress = getattr(env, 'victim_distress', 3.0)
+                
                 # FIX: Dynamically detect forecaster input dimension
                 first_layer = None
                 for module in agent.forecast_net_target.children():
@@ -449,7 +452,12 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
                     action_onehot = torch.zeros(agent.action_dim, device=obs_tensor.device)
                     action_onehot[a] = 1.0
                     
-                    input_parts = [obs_flat, action_onehot, agent.E]
+                    # FIX BUG-031: Include counterfactual harm for this action
+                    # STEAL (a=5) causes harm, other actions don't
+                    cf_harm = victim_distress if a == 5 else 0.0
+                    harm_tensor = torch.tensor([cf_harm], device=obs_tensor.device)
+                    
+                    input_parts = [obs_flat, action_onehot, agent.E, harm_tensor]
                     if hebbian_readout is not None:
                         input_parts.append(hebbian_readout.squeeze())
                     forecast_input = torch.cat(input_parts)
@@ -670,8 +678,10 @@ def train_iae_dynamics(agent, optimizer, rollout_data, cfg, device):
                 action_oh[:, action_id] = 1.0
                 harm_tensor = torch.full((batch_len, 1), harm_t, device=device)
                 
-                # TARGET: delta_E = harm_t * scale
-                target_delta_E = (harm_tensor * harm_scale).expand(-1, iae_dim)
+                # TARGET: delta_E = harm_t * harm_scale (broadcast to all dimensions)
+                # STEAL: harm_t=3.0, target = [1.5, 1.5, ..., 1.5] → ||target|| ≈ 8.5
+                # HELP: harm_t=0, target = [0, 0, ..., 0] → ||target|| = 0
+                target_delta_E = torch.full((batch_len, iae_dim), harm_t * harm_scale, device=device)
                 
                 # Forward pass
                 dynamics_input = torch.cat([obs, action_oh, harm_tensor], dim=-1)
@@ -790,8 +800,10 @@ def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
                     # FIX BUG-015: Use per-sample E, not single E for all
                     target_E = agent.gamma_E * E_samples + delta_E
                 
-                # Forecaster input with per-sample E
-                forecast_input = torch.cat([obs, action_oh, E_samples], dim=-1)
+                # FIX BUG-031: Forecaster input MUST include harm_t so it can learn
+                # the mapping (obs, action, E, harm) → E_next
+                # Without harm_t, forecaster can't distinguish HELP from STEAL!
+                forecast_input = torch.cat([obs, action_oh, E_samples, harm_tensor], dim=-1)
                 
                 if use_hebbian_in_forecaster:
                     if hasattr(agent, 'hebbian_gate'):
