@@ -1382,33 +1382,34 @@ def print_diagnostics(rollout_data, scheduler, global_step, episode_count, agent
     print(f"  ||E||:    {agent.E.norm().item():.3f}")
     
     # DIAGNOSTIC: Show what forecaster predicts for HELP vs STEAL
-    # This reveals if the forecaster has learned to distinguish actions
-    with torch.no_grad():
-        device = agent.E.device
-        # Use a sample observation from rollout
-        if len(rollout_data['observations']) > 0:
-            sample_obs = rollout_data['observations'][0].to(device).flatten()
-            victim_distress = 3.0  # Standard value
-            E_preds_diag = []
-            for a in range(agent.action_dim):
-                action_oh = torch.zeros(agent.action_dim, device=device)
-                action_oh[a] = 1.0
-                cf_harm = victim_distress if a == 5 else 0.0
-                harm_t = torch.tensor([cf_harm], device=device)
+    # Only for ESAI agents with forecaster (not PPO baseline)
+    if hasattr(agent, 'forecast_net_target') and agent.forecast_net_target is not None:
+        with torch.no_grad():
+            device = agent.E.device
+            # Use a sample observation from rollout
+            if len(rollout_data['observations']) > 0:
+                sample_obs = rollout_data['observations'][0].to(device).flatten()
+                victim_distress = 3.0  # Standard value
+                E_preds_diag = []
+                for a in range(agent.action_dim):
+                    action_oh = torch.zeros(agent.action_dim, device=device)
+                    action_oh[a] = 1.0
+                    cf_harm = victim_distress if a == 5 else 0.0
+                    harm_t = torch.tensor([cf_harm], device=device)
+                    
+                    input_parts = [sample_obs, action_oh, agent.E, harm_t]
+                    if agent.use_hebbian and agent.hebbian is not None:
+                        heb_read = agent.hebbian.read(agent.E)
+                        if hasattr(agent, 'hebbian_gate'):
+                            gate = agent.hebbian_gate(agent.E)
+                            heb_read = gate * heb_read
+                        input_parts.append(heb_read.squeeze())
+                    forecast_in = torch.cat(input_parts)
+                    E_pred = agent.forecast_net_target(forecast_in)
+                    E_preds_diag.append(E_pred.norm().item())
                 
-                input_parts = [sample_obs, action_oh, agent.E, harm_t]
-                if agent.use_hebbian and agent.hebbian is not None:
-                    heb_read = agent.hebbian.read(agent.E)
-                    if hasattr(agent, 'hebbian_gate'):
-                        gate = agent.hebbian_gate(agent.E)
-                        heb_read = gate * heb_read
-                    input_parts.append(heb_read.squeeze())
-                forecast_in = torch.cat(input_parts)
-                E_pred = agent.forecast_net_target(forecast_in)
-                E_preds_diag.append(E_pred.norm().item())
-            
-            print(f"  Forecaster ||E^(a)||: {[f'{x:.2f}' for x in E_preds_diag]}")
-            print(f"    HELP(4)={E_preds_diag[4]:.2f}, STEAL(5)={E_preds_diag[5]:.2f}, diff={E_preds_diag[5]-E_preds_diag[4]:.2f}")
+                print(f"  Forecaster ||E^(a)||: {[f'{x:.2f}' for x in E_preds_diag]}")
+                print(f"    HELP(4)={E_preds_diag[4]:.2f}, STEAL(5)={E_preds_diag[5]:.2f}, diff={E_preds_diag[5]-E_preds_diag[4]:.2f}")
 
 
 # =============================================================================
