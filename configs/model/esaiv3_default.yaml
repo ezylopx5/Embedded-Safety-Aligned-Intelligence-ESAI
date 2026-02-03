@@ -71,7 +71,9 @@ entropy_decay_steps: 200000
 batch_size: 128
 num_epochs: 10
 rollout_length: 2048
-ema_tau: 0.995
+# FIX BUG-036: tau=0.995 is too slow - after 20 updates target is still 90% initial
+# With tau=0.5, target catches up in ~10 updates
+ema_tau: 0.5
 
 # -----------------------------------------------------------------------------
 # Stability Safeguards

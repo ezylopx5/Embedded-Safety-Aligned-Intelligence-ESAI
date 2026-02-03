@@ -849,6 +849,58 @@ def train_forecaster(agent, forecaster_optimizer, rollout_data, cfg, device):
     if hasattr(agent, 'update_target_forecaster'):
         agent.update_target_forecaster(tau=cfg.get('ema_tau', 0.995))
     
+    # ==========================================================================
+    # FIX BUG-037: Also train on E=0 samples to learn unsaturated behavior
+    # When ||E||=10 (saturated), targets for HELP and STEAL are both ~10
+    # This prevents forecaster from learning the critical difference
+    # Training with E=0 shows: STEAL→high E, HELP→low E
+    # ==========================================================================
+    zero_E = torch.zeros(agent.iae_dim, device=device)
+    zero_E_batch = zero_E.unsqueeze(0).expand(batch_size, -1)
+    
+    # Sample some observations to train with E=0
+    sample_indices = torch.randperm(n_samples, device=device)[:batch_size]
+    sample_obs = obs_batch[sample_indices]
+    
+    zero_E_losses = []
+    for action_id in range(agent.action_dim):
+        if action_id == 5:  # STEAL
+            harm_t = victim_distress
+        else:
+            harm_t = 0.0
+        
+        harm_tensor = torch.full((batch_size, 1), harm_t, device=device)
+        action_oh = torch.zeros(batch_size, agent.action_dim, device=device)
+        action_oh[:, action_id] = 1.0
+        
+        with torch.no_grad():
+            dynamics_input = torch.cat([sample_obs, action_oh, harm_tensor], dim=-1)
+            delta_E = agent.iae_dynamics(dynamics_input)
+            # From E=0: target_E = 0.9 * 0 + delta_E = delta_E
+            target_E = agent.gamma_E * zero_E_batch + delta_E
+        
+        forecast_input = torch.cat([sample_obs, action_oh, zero_E_batch, harm_tensor], dim=-1)
+        
+        # Pad if needed
+        if forecast_input.shape[1] < forecaster_input_dim:
+            padding = torch.zeros(batch_size, forecaster_input_dim - forecast_input.shape[1], device=device)
+            forecast_input = torch.cat([forecast_input, padding], dim=-1)
+        
+        pred_E = agent.forecast_net(forecast_input)
+        loss = F.smooth_l1_loss(pred_E, target_E)
+        zero_E_losses.append(loss)
+    
+    if zero_E_losses:
+        zero_E_loss = torch.stack(zero_E_losses).mean()
+        forecaster_optimizer.zero_grad()
+        zero_E_loss.backward()
+        torch.nn.utils.clip_grad_norm_(agent.forecast_net.parameters(), 1.0)
+        forecaster_optimizer.step()
+        
+        # Update target again after E=0 training
+        if hasattr(agent, 'update_target_forecaster'):
+            agent.update_target_forecaster(tau=cfg.get('ema_tau', 0.995))
+    
     return total_loss / max(n_updates, 1)
 
 
@@ -1328,6 +1380,35 @@ def print_diagnostics(rollout_data, scheduler, global_step, episode_count, agent
     print(f"  Invalid:  {n_invalid} ({invalid_rate:.1%}) [should be ~0% with masking]")
     print(f"  Actions:  {action_counts.tolist()}")
     print(f"  ||E||:    {agent.E.norm().item():.3f}")
+    
+    # DIAGNOSTIC: Show what forecaster predicts for HELP vs STEAL
+    # This reveals if the forecaster has learned to distinguish actions
+    with torch.no_grad():
+        device = agent.E.device
+        # Use a sample observation from rollout
+        if len(rollout_data['observations']) > 0:
+            sample_obs = rollout_data['observations'][0].to(device).flatten()
+            victim_distress = 3.0  # Standard value
+            E_preds_diag = []
+            for a in range(agent.action_dim):
+                action_oh = torch.zeros(agent.action_dim, device=device)
+                action_oh[a] = 1.0
+                cf_harm = victim_distress if a == 5 else 0.0
+                harm_t = torch.tensor([cf_harm], device=device)
+                
+                input_parts = [sample_obs, action_oh, agent.E, harm_t]
+                if agent.use_hebbian and agent.hebbian is not None:
+                    heb_read = agent.hebbian.read(agent.E)
+                    if hasattr(agent, 'hebbian_gate'):
+                        gate = agent.hebbian_gate(agent.E)
+                        heb_read = gate * heb_read
+                    input_parts.append(heb_read.squeeze())
+                forecast_in = torch.cat(input_parts)
+                E_pred = agent.forecast_net_target(forecast_in)
+                E_preds_diag.append(E_pred.norm().item())
+            
+            print(f"  Forecaster ||E^(a)||: {[f'{x:.2f}' for x in E_preds_diag]}")
+            print(f"    HELP(4)={E_preds_diag[4]:.2f}, STEAL(5)={E_preds_diag[5]:.2f}, diff={E_preds_diag[5]-E_preds_diag[4]:.2f}")
 
 
 # =============================================================================
