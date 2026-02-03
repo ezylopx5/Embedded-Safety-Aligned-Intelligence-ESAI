@@ -271,17 +271,89 @@ def apply_action_mask(logits: torch.Tensor, can_interact: bool) -> torch.Tensor:
 
 
 # =============================================================================
+# ASCII VISUALIZATION (for remote/terminal training)
+# =============================================================================
+
+def print_ascii_env(env, action, reward, info, agent, ar_penalty, step, can_interact):
+    """
+    Print ASCII visualization of the environment state.
+    Shows agent position, victim position, and current decision.
+    """
+    grid_size = getattr(env, 'grid_size', 8)
+    agent_pos = getattr(env, 'agent_pos', np.array([0, 0]))
+    victim_pos = getattr(env, 'victim_pos', np.array([1, 1]))
+    interaction_radius = getattr(env, 'interaction_radius', 1.5)
+    
+    action_names = ['↑ UP', '↓ DOWN', '← LEFT', '→ RIGHT', '★ HELP', '✗ STEAL']
+    action_name = action_names[action] if action < len(action_names) else f'Action {action}'
+    
+    # Determine action color/symbol
+    if action == 4:  # HELP
+        action_sym = '★ HELP ★'
+        outcome = '🟢 PROSOCIAL'
+    elif action == 5:  # STEAL
+        action_sym = '✗ STEAL ✗'
+        outcome = '🔴 ANTISOCIAL'
+    else:
+        action_sym = action_name
+        outcome = '⚪ MOVEMENT'
+    
+    # Compute distance
+    dist = np.linalg.norm(agent_pos - victim_pos)
+    
+    print(f"\n┌{'─'*60}┐")
+    print(f"│ STEP {step:>8} │ {outcome:^38} │")
+    print(f"├{'─'*60}┤")
+    
+    # Print grid with interaction radius visualization
+    print(f"│ {'Grid (A=Agent, V=Victim, ·=interaction zone):':<58} │")
+    for y in range(grid_size - 1, -1, -1):
+        row = "│   "
+        for x in range(grid_size):
+            cell_pos = np.array([x + 0.5, y + 0.5])
+            dist_to_victim = np.linalg.norm(cell_pos - victim_pos)
+            
+            if np.abs(agent_pos[0] - (x + 0.5)) < 0.5 and np.abs(agent_pos[1] - (y + 0.5)) < 0.5:
+                if dist <= interaction_radius:
+                    row += "⚔ "  # Agent in interaction zone
+                else:
+                    row += "A "  # Agent
+            elif np.abs(victim_pos[0] - (x + 0.5)) < 0.5 and np.abs(victim_pos[1] - (y + 0.5)) < 0.5:
+                row += "V "  # Victim
+            elif dist_to_victim <= interaction_radius:
+                row += "· "  # Interaction zone
+            else:
+                row += ". "
+        row = row + " " * (60 - len(row)) + "│"
+        print(row)
+    
+    print(f"├{'─'*60}┤")
+    print(f"│ Agent: ({agent_pos[0]:>5.2f}, {agent_pos[1]:>5.2f})   Victim: ({victim_pos[0]:>5.2f}, {victim_pos[1]:>5.2f}){' '*14}│")
+    print(f"│ Distance: {dist:>5.2f}   Radius: {interaction_radius:>4.1f}   In Zone: {'YES ✓' if can_interact else 'NO  ✗'}{' '*11}│")
+    print(f"├{'─'*60}┤")
+    print(f"│ Action Taken: {action_sym:<44} │")
+    print(f"│ Ext Reward: {reward:>+7.2f}   AR Penalty: {ar_penalty:>8.4f}{' '*17}│")
+    print(f"│ Trans Reward: {reward - ar_penalty:>+7.2f}   ||E||: {agent.E.norm().item():>8.4f}{' '*17}│")
+    
+    # Show harm signal
+    harm_t = info.get('harm_t', 0.0)
+    print(f"│ Harm Signal: {harm_t:>6.2f} {'(STEALING → E grows!)' if harm_t > 0 else '(no harm)':<28}│")
+    print(f"└{'─'*60}┘")
+
+
+# =============================================================================
 # ROLLOUT COLLECTION (with action masking)
 # =============================================================================
 
 def collect_rollout(agent, env, scheduler, global_step, cfg, device, 
-                    max_steps=2048, debug=False, visualizer=None):
+                    max_steps=2048, debug=False, visualizer=None, ascii_viz_freq=0):
     """
     Collect rollout with proper IAE clipping, AR computation, and action masking.
     FIXED: Now collects MULTIPLE episodes until max_steps is reached.
     
     Args:
         visualizer: Optional TrainingVisualizer for real-time display
+        ascii_viz_freq: Print ASCII visualization every N steps (0=disabled)
     """
     obs, info = env.reset(seed=np.random.randint(0, 1000000))
     agent.reset_iae()
@@ -355,6 +427,8 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
             # Now compute AR for the SAME action we sampled
             # FIX BUG-009: AR must be computed for the action we actually take
             AR_t = torch.tensor(0.0, device=obs_tensor.device)
+            debug_info = {}  # For logging
+            
             if agent.use_alignment_regret and hasattr(agent, 'forecast_net'):
                 E_preds = []
                 obs_flat = obs_tensor.flatten()
@@ -392,7 +466,16 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
                 agent.alignment_loss.temperature = agent.temperature
                 # FIX BUG-027: Pass the action index so AR compares E^(a_t) vs E^ref
                 # Paper Eq. 9: AR_t = ||E^(a_t)_{t+1} - E^ref_{t+1}||²
-                AR_t = agent.alignment_loss(E_preds=E_preds, action_taken=action.item(), E_neighbors=None)
+                AR_t, ar_info = agent.alignment_loss(E_preds=E_preds, action_taken=action.item(), E_neighbors=None, return_info=True)
+                
+                # Store debug info for logging
+                debug_info = {
+                    'E_pred_norms': [E_preds[i].norm().item() for i in range(agent.action_dim)],
+                    'E_ref_norm': ar_info['E_ref'].norm().item(),
+                    'E_chosen_norm': ar_info['E_chosen'].norm().item(),
+                    'softmin_weights': ar_info['weights'].tolist(),
+                    'self_regret': ar_info['self_regret'],
+                }
             
             ar_penalty = AR_t.item() if isinstance(AR_t, torch.Tensor) else AR_t
             ar_penalty = scheduler.clip_ar(ar_penalty)
@@ -404,7 +487,8 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
             extra = {
                 'E': agent.E.detach().cpu().numpy(),
                 'AR_t': ar_penalty,
-                'E_norm': agent.E.norm().item()
+                'E_norm': agent.E.norm().item(),
+                'debug': debug_info
             }
         
         action_np = action.item()
@@ -434,6 +518,11 @@ def collect_rollout(agent, env, scheduler, global_step, cfg, device,
         if not can_interact:
             action_mask[ACTION_HELP] = 0.0
             action_mask[ACTION_STEAL] = 0.0
+        
+        # ASCII visualization (terminal-based, for remote training)
+        if ascii_viz_freq > 0 and (global_step + steps) % ascii_viz_freq == 0:
+            print_ascii_env(env, action_np, reward, info, agent, ar_penalty, 
+                           global_step + steps, can_interact)
         
         # Update visualization if enabled
         if visualizer is not None:
@@ -1050,6 +1139,130 @@ def evaluate(agent, env, scheduler, global_step, num_episodes, device):
 # DIAGNOSTICS
 # =============================================================================
 
+def print_detailed_debug(rollout_data, agent, cfg, device, step):
+    """Print detailed debug info to understand AR computation."""
+    if step > 0 and step % 50000 != 0:  # At start (0), end (-1), AND every 50k steps
+        return
+    
+    print(f"\n{'#'*70}")
+    print(f"# DETAILED DEBUG LOG - Step {step}")
+    print(f"{'#'*70}")
+    
+    # Test IAE dynamics predictions for HELP vs STEAL
+    obs_sample = rollout_data['observations'][0].to(device)
+    victim_distress = cfg.get('victim_distress', 3.0)
+    
+    print(f"\n[1] IAE DYNAMICS TEST (g_φ network):")
+    print(f"    Input obs shape: {obs_sample.shape}")
+    
+    with torch.no_grad():
+        for action_id, action_name in [(4, 'HELP'), (5, 'STEAL')]:
+            action_oh = torch.zeros(agent.action_dim, device=device)
+            action_oh[action_id] = 1.0
+            harm_t = victim_distress if action_id == 5 else 0.0
+            harm_tensor = torch.tensor([harm_t], device=device)
+            
+            dynamics_input = torch.cat([obs_sample, action_oh, harm_tensor])
+            delta_E = agent.iae_dynamics(dynamics_input)
+            
+            print(f"    {action_name}: harm_t={harm_t:.1f} → ||delta_E||={delta_E.norm().item():.4f}")
+    
+    # Test forecaster predictions
+    print(f"\n[2] FORECASTER TEST (h_ψ network):")
+    E_sample = rollout_data['current_E'][0].to(device)
+    print(f"    Current E norm: {E_sample.norm().item():.4f}")
+    
+    with torch.no_grad():
+        hebbian_readout = None
+        if agent.use_hebbian and agent.hebbian is not None:
+            hebbian_readout = agent.hebbian.read(E_sample)
+        
+        first_layer = None
+        for module in agent.forecast_net_target.children():
+            if isinstance(module, nn.Linear):
+                first_layer = module
+                break
+        expected_dim = first_layer.in_features if first_layer else None
+        
+        for action_id, action_name in [(4, 'HELP'), (5, 'STEAL')]:
+            action_oh = torch.zeros(agent.action_dim, device=device)
+            action_oh[action_id] = 1.0
+            
+            input_parts = [obs_sample, action_oh, E_sample]
+            if hebbian_readout is not None:
+                input_parts.append(hebbian_readout.squeeze())
+            forecast_input = torch.cat(input_parts)
+            
+            if expected_dim and forecast_input.shape[0] < expected_dim:
+                padding = torch.zeros(expected_dim - forecast_input.shape[0], device=device)
+                forecast_input = torch.cat([forecast_input, padding])
+            
+            E_pred = agent.forecast_net_target(forecast_input)
+            print(f"    {action_name}: ||E^({action_name})_pred||={E_pred.norm().item():.4f}")
+    
+    # Test AR computation
+    print(f"\n[3] AR COMPUTATION TEST:")
+    with torch.no_grad():
+        E_preds = []
+        for a in range(agent.action_dim):
+            action_oh = torch.zeros(agent.action_dim, device=device)
+            action_oh[a] = 1.0
+            input_parts = [obs_sample, action_oh, E_sample]
+            if hebbian_readout is not None:
+                input_parts.append(hebbian_readout.squeeze())
+            forecast_input = torch.cat(input_parts)
+            if expected_dim and forecast_input.shape[0] < expected_dim:
+                padding = torch.zeros(expected_dim - forecast_input.shape[0], device=device)
+                forecast_input = torch.cat([forecast_input, padding])
+            E_pred = agent.forecast_net_target(forecast_input)
+            E_preds.append(E_pred)
+        
+        E_preds_stack = torch.stack(E_preds)
+        
+        # Compute softmin reference
+        R_values = torch.norm(E_preds_stack, dim=1, p=2) ** 2
+        tau = agent.temperature
+        weights = torch.softmax(-R_values / (tau + 1e-8), dim=0)
+        E_ref = torch.sum(weights.unsqueeze(1) * E_preds_stack, dim=0)
+        
+        print(f"    Temperature τ: {tau:.4f}")
+        print(f"    R(a) = ||E^(a)||²: {[f'{r.item():.4f}' for r in R_values]}")
+        print(f"    Softmin weights π_ref: {[f'{w.item():.4f}' for w in weights]}")
+        print(f"    ||E^ref||: {E_ref.norm().item():.4f}")
+        
+        # AR for HELP vs STEAL
+        AR_help = ((E_preds_stack[4] - E_ref) ** 2).sum().item()
+        AR_steal = ((E_preds_stack[5] - E_ref) ** 2).sum().item()
+        print(f"\n    AR(HELP)  = ||E^(HELP) - E^ref||² = {AR_help:.4f}")
+        print(f"    AR(STEAL) = ||E^(STEAL) - E^ref||² = {AR_steal:.4f}")
+        print(f"    AR(STEAL) - AR(HELP) = {AR_steal - AR_help:.4f}")
+        
+        if AR_steal > AR_help:
+            print(f"    ✓ CORRECT: AR penalizes STEAL more than HELP")
+        else:
+            print(f"    ✗ WRONG: AR penalizes HELP more than STEAL!")
+    
+    # Check reward transformation
+    print(f"\n[4] REWARD TRANSFORMATION:")
+    lambda_reg = cfg.get('lambda_reg', 2.0)
+    r_help = 1.0  # help_reward from env
+    r_steal = 5.0  # steal_reward from env
+    
+    r_prime_help = r_help - lambda_reg * AR_help
+    r_prime_steal = r_steal - lambda_reg * AR_steal
+    
+    print(f"    λ_reg = {lambda_reg:.4f}")
+    print(f"    r(HELP) = {r_help:.1f}, r'(HELP) = {r_help:.1f} - {lambda_reg:.4f}*{AR_help:.4f} = {r_prime_help:.4f}")
+    print(f"    r(STEAL) = {r_steal:.1f}, r'(STEAL) = {r_steal:.1f} - {lambda_reg:.4f}*{AR_steal:.4f} = {r_prime_steal:.4f}")
+    
+    if r_prime_help > r_prime_steal:
+        print(f"    ✓ CORRECT: Transformed r'(HELP) > r'(STEAL)")
+    else:
+        print(f"    ✗ WRONG: Transformed r'(STEAL) > r'(HELP) - agent will prefer STEAL!")
+    
+    print(f"{'#'*70}\n")
+
+
 def print_diagnostics(rollout_data, scheduler, global_step, episode_count, agent):
     """Print training diagnostics with engagement tracking."""
     
@@ -1135,6 +1348,8 @@ def main():
                         help='Visualization update frequency (steps)')
     parser.add_argument('--save-viz', action='store_true',
                         help='Save visualization snapshots')
+    parser.add_argument('--ascii-viz', type=int, default=0,
+                        help='ASCII visualization frequency (0=disabled, e.g. 1000=every 1000 steps)')
     args = parser.parse_args()
     
     # Load configs
@@ -1309,7 +1524,8 @@ def main():
             agent, env, scheduler, global_step, cfg, device,
             max_steps=cfg.get('rollout_length', 2048),
             debug=args.debug,
-            visualizer=visualizer
+            visualizer=visualizer,
+            ascii_viz_freq=args.ascii_viz
         )
         
         global_step += steps
@@ -1318,6 +1534,7 @@ def main():
         pbar.update(steps)
         
         print_diagnostics(rollout_data, scheduler, global_step, episode_count, agent)
+        print_detailed_debug(rollout_data, agent, cfg, device, global_step)
         
         if len(rollout_data['rewards']) < 32:
             continue
@@ -1388,6 +1605,12 @@ def main():
         if args.save_viz:
             visualizer.save_snapshot('final')
         visualizer.close()
+    
+    # FINAL DEBUG: Print detailed debug at end of training
+    print(f"\n{'='*60}")
+    print(f"FINAL DEBUG DUMP BEFORE SAVING")
+    print(f"{'='*60}")
+    print_detailed_debug(rollout_data, agent, cfg, device, -1)  # -1 forces print
     
     save_checkpoint(agent, optimizer, scheduler, global_step,
                    episode_count, episode_rewards, metrics_history,

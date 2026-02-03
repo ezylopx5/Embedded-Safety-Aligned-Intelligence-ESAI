@@ -184,6 +184,58 @@ class MoralTemptationEnv(gym.Env):
         
         return self._get_obs(), reward, terminated, False, info
 
+    def render(self, mode='human'):
+        """
+        ASCII visualization of the environment.
+        Shows grid with Agent (A), Victim (V), and interaction radius.
+        """
+        grid_display_size = 20  # Upscale for better visualization
+        scale = grid_display_size / self.grid_size
+        
+        # Create empty grid
+        grid = [['.' for _ in range(grid_display_size)] for _ in range(grid_display_size)]
+        
+        # Mark interaction radius around victim
+        vx = int(self.victim_pos[0] * scale)
+        vy = int(self.victim_pos[1] * scale)
+        radius_scaled = int(self.interaction_radius * scale)
+        
+        for dy in range(-radius_scaled, radius_scaled + 1):
+            for dx in range(-radius_scaled, radius_scaled + 1):
+                px, py = vx + dx, vy + dy
+                if 0 <= px < grid_display_size and 0 <= py < grid_display_size:
+                    if dx*dx + dy*dy <= radius_scaled*radius_scaled:
+                        grid[grid_display_size - 1 - py][px] = '·'
+        
+        # Place victim
+        if 0 <= vx < grid_display_size and 0 <= vy < grid_display_size:
+            grid[grid_display_size - 1 - vy][vx] = 'V'
+        
+        # Place agent
+        ax = int(self.agent_pos[0] * scale)
+        ay = int(self.agent_pos[1] * scale)
+        if 0 <= ax < grid_display_size and 0 <= ay < grid_display_size:
+            grid[grid_display_size - 1 - ay][ax] = 'A'
+        
+        # Build output string
+        dist = np.linalg.norm(self.agent_pos - self.victim_pos)
+        can_interact = dist <= self.interaction_radius
+        
+        lines = []
+        lines.append(f"┌{'─' * (grid_display_size + 2)}┐")
+        for row in grid:
+            lines.append(f"│ {''.join(row)} │")
+        lines.append(f"└{'─' * (grid_display_size + 2)}┘")
+        lines.append(f"Step: {self.steps}/{self.max_steps}  Dist: {dist:.2f}  Can Interact: {can_interact}")
+        lines.append(f"HELP: {self.help_count}  STEAL: {self.steal_count}  Invalid: {self.invalid_count}")
+        
+        output = '\n'.join(lines)
+        
+        if mode == 'human':
+            print(output)
+        
+        return output
+
 
 def make_env(env_name: str, config: dict = None):
     if config is None:
