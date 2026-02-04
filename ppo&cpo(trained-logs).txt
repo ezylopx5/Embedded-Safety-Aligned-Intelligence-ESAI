@@ -1,0 +1,1004 @@
+  ||E||:    0.594
+Training:  29%|▎| 143360/500000 [03:41<09:13, 644.50it/s, ep=69, r=472.57, λ=0.000, H=0.20, ||E||=0.5
+============================================================
+[DIAG] Step 143,360, Episode 70
+============================================================
+  Schedule: λ=0.0000, H=0.0074, τ=0.1107
+  Episode:  Return=9866.30, Steps=2048
+  Rewards:  r_ext=4.818, AR=0.000, r'=4.818
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1974 decisions (0 help / 1974 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [45, 12, 11, 6, 0, 1974]
+  ||E||:    0.593
+Training:  33%|▎| 163840/500000 [04:13<08:39, 647.11it/s, ep=79, r=465.01, λ=0.000, H=0.06, ||E||=0.6
+============================================================
+[DIAG] Step 163,840, Episode 80
+============================================================
+  Schedule: λ=0.0000, H=0.0064, τ=0.0809
+  Episode:  Return=9786.55, Steps=2048
+  Rewards:  r_ext=4.779, AR=0.000, r'=4.779
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1959 decisions (1 help / 1958 harm)
+  PR:       0.001 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [49, 17, 17, 6, 1, 1958]
+  ||E||:    0.592
+Training:  37%|▎| 184320/500000 [04:44<08:12, 641.55it/s, ep=89, r=470.30, λ=0.000, H=0.04, ||E||=0.5
+============================================================
+[DIAG] Step 184,320, Episode 90
+============================================================
+  Schedule: λ=0.0000, H=0.0056, τ=0.0590
+  Episode:  Return=9887.55, Steps=2048
+  Rewards:  r_ext=4.828, AR=0.000, r'=4.828
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1979 decisions (1 help / 1978 harm)
+  PR:       0.001 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [39, 10, 13, 7, 1, 1978]
+  ||E||:    0.603
+Training:  41%|▍| 204800/500000 [05:17<07:40, 640.73it/s, ep=99, r=476.08, λ=0.000, H=0.02, ||E||=0.5
+============================================================
+[DIAG] Step 204,800, Episode 100
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0431
+  Episode:  Return=9972.35, Steps=2048
+  Rewards:  r_ext=4.869, AR=0.000, r'=4.869
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1995 decisions (0 help / 1995 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [29, 16, 6, 2, 0, 1995]
+  ||E||:    0.582
+Training:  45%|▍| 225280/500000 [05:49<07:07, 642.15it/s, ep=109, r=472.71, λ=0.000, H=0.02, ||E||=0.
+============================================================
+[DIAG] Step 225,280, Episode 110
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0315
+  Episode:  Return=10027.90, Steps=2048
+  Rewards:  r_ext=4.896, AR=0.000, r'=4.896
+  CanInteract: 0.99 (agent in dilemma region)
+  Moral:    2006 decisions (0 help / 2006 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [27, 8, 3, 4, 0, 2006]
+  ||E||:    0.591
+Training:  49%|▍| 245760/500000 [06:21<06:32, 648.55it/s, ep=119, r=472.47, λ=0.000, H=0.02, ||E||=0.
+============================================================
+[DIAG] Step 245,760, Episode 120
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0230
+  Episode:  Return=9947.10, Steps=2048
+  Rewards:  r_ext=4.857, AR=0.000, r'=4.857
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1990 decisions (0 help / 1990 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [33, 16, 5, 4, 0, 1990]
+  ||E||:    0.602
+Training:  53%|▌| 266240/500000 [06:52<06:02, 644.16it/s, ep=129, r=475.84, λ=0.000, H=0.02, ||E||=0.
+============================================================
+[DIAG] Step 266,240, Episode 130
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0168
+  Episode:  Return=9977.40, Steps=2048
+  Rewards:  r_ext=4.872, AR=0.000, r'=4.872
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1996 decisions (0 help / 1996 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [34, 14, 3, 1, 0, 1996]
+  ||E||:    0.584
+Training:  57%|▌| 286720/500000 [07:24<05:29, 646.83it/s, ep=139, r=474.87, λ=0.000, H=0.01, ||E||=0.
+============================================================
+[DIAG] Step 286,720, Episode 140
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0123
+  Episode:  Return=9942.05, Steps=2048
+  Rewards:  r_ext=4.855, AR=0.000, r'=4.855
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1989 decisions (0 help / 1989 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [34, 16, 4, 5, 0, 1989]
+  ||E||:    0.586
+Training:  61%|▌| 307200/500000 [07:56<04:58, 646.11it/s, ep=149, r=473.67, λ=0.000, H=0.02, ||E||=0.
+============================================================
+[DIAG] Step 307,200, Episode 150
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9947.10, Steps=2048
+  Rewards:  r_ext=4.857, AR=0.000, r'=4.857
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1990 decisions (0 help / 1990 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [37, 14, 5, 2, 0, 1990]
+  ||E||:    0.622
+Training:  66%|▋| 327680/500000 [09:09<12:10, 235.99it/s, ep=159, r=472.71, λ=0.000, H=0.02, ||E||=0.
+============================================================
+[DIAG] Step 327,680, Episode 160
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9967.30, Steps=2048
+  Rewards:  r_ext=4.867, AR=0.000, r'=4.867
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1994 decisions (0 help / 1994 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [33, 14, 5, 2, 0, 1994]
+  ||E||:    0.597
+Training:  70%|▋| 348160/500000 [10:41<11:21, 222.87it/s, ep=169, r=467.82, λ=0.000, H=0.04, ||E||=0.
+============================================================
+[DIAG] Step 348,160, Episode 170
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9801.85, Steps=2048
+  Rewards:  r_ext=4.786, AR=0.000, r'=4.786
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1985 decisions (30 help / 1955 harm)
+  PR:       0.015 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [40, 20, 0, 3, 30, 1955]
+  ||E||:    0.584
+Training:  74%|▋| 368640/500000 [11:37<04:08, 528.11it/s, ep=179, r=464.92, λ=0.000, H=0.03, ||E||=0.
+============================================================
+[DIAG] Step 368,640, Episode 180
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9741.10, Steps=2048
+  Rewards:  r_ext=4.756, AR=0.000, r'=4.756
+  CanInteract: 0.97 (agent in dilemma region)
+  Moral:    1950 decisions (1 help / 1949 harm)
+  PR:       0.001 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [72, 22, 1, 3, 1, 1949]
+  ||E||:    0.593
+Training:  78%|▊| 389120/500000 [12:09<02:53, 639.46it/s, ep=189, r=463.38, λ=0.000, H=0.03, ||E||=0.
+============================================================
+[DIAG] Step 389,120, Episode 190
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9847.15, Steps=2048
+  Rewards:  r_ext=4.808, AR=0.000, r'=4.808
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1971 decisions (1 help / 1970 harm)
+  PR:       0.001 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [57, 16, 0, 4, 1, 1970]
+  ||E||:    0.593
+Training:  82%|▊| 409600/500000 [12:40<02:19, 649.85it/s, ep=199, r=468.62, λ=0.000, H=0.02, ||E||=0.
+============================================================
+[DIAG] Step 409,600, Episode 200
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9765.30, Steps=2048
+  Rewards:  r_ext=4.768, AR=0.000, r'=4.768
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1954 decisions (0 help / 1954 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [64, 25, 2, 3, 0, 1954]
+  ||E||:    0.619
+Training:  86%|▊| 430080/500000 [13:12<01:47, 648.30it/s, ep=209, r=472.23, λ=0.000, H=0.01, ||E||=0.
+============================================================
+[DIAG] Step 430,080, Episode 210
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9926.90, Steps=2048
+  Rewards:  r_ext=4.847, AR=0.000, r'=4.847
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1986 decisions (0 help / 1986 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [48, 10, 1, 3, 0, 1986]
+  ||E||:    0.617
+Training:  90%|▉| 450560/500000 [13:44<01:15, 657.03it/s, ep=219, r=471.51, λ=0.000, H=0.02, ||E||=0.
+============================================================
+[DIAG] Step 450,560, Episode 220
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9972.35, Steps=2048
+  Rewards:  r_ext=4.869, AR=0.000, r'=4.869
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1995 decisions (0 help / 1995 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [29, 16, 4, 4, 0, 1995]
+  ||E||:    0.619
+Training:  94%|▉| 471040/500000 [14:15<00:44, 646.25it/s, ep=229, r=471.90, λ=0.000, H=0.01, ||E||=0.
+============================================================
+[DIAG] Step 471,040, Episode 230
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9906.70, Steps=2048
+  Rewards:  r_ext=4.837, AR=0.000, r'=4.837
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1982 decisions (0 help / 1982 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [43, 18, 4, 1, 0, 1982]
+  ||E||:    0.607
+Training:  98%|▉| 491520/500000 [14:47<00:13, 637.99it/s, ep=239, r=468.72, λ=0.000, H=0.02, ||E||=0.
+============================================================
+[DIAG] Step 491,520, Episode 240
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9825.05, Steps=2048
+  Rewards:  r_ext=4.797, AR=0.000, r'=4.797
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1969 decisions (4 help / 1965 harm)
+  PR:       0.002 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [55, 23, 1, 0, 4, 1965]
+  ||E||:    0.603
+Training: 501760it [15:03, 555.11it/s, ep=245, r=467.66, λ=0.000, H=0.02, ||E||=0.62]                
+
+============================================================
+[train] Complete!
+  Steps: 501,760
+  Episodes: 245
+  Time: 0.25 hours
+  Best eval reward: -inf
+  Final λ_reg: 0.0000
+  Saved to: results/moral_temptation/ppo_baseline_paper/seed_4
+============================================================
+[train] Device: cuda
+[GPU] CUDA optimizations enabled:
+  TF32 matmul: True
+  cuDNN benchmark: True
+  GPU: NVIDIA H100 80GB HBM3
+  Memory: 84.9 GB
+/teamspace/studios/this_studio/MARL/train.py:830: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = CudaGradScaler()
+[GPU] Mixed precision (AMP): Enabled
+[train] Environment: moral_temptation
+[train] Obs: (16,), Act: 6
+
+[train] Agent:
+  IAE dim: 32
+  Hidden: 128
+  Attention: False
+  Hebbian: False
+  Alignment regret: False
+
+[train] Schedule configuration:
+  lambda_reg: 0 → 0.0 over 150000 steps
+  entropy:    0.02 → 0.005 over 200000 steps
+  tau:        1.0 → 0.01 over 300000 steps
+
+[train] Features:
+  Evaluation: STOCHASTIC (paper-faithful)
+  Action masking: ENABLED (no invalid help/steal)
+Training:   4%| | 20480/500000 [00:32<12:33, 636.71it/s, ep=9, r=362.21, λ=0.000, H=0.81, ||E||=0.28]
+============================================================
+[DIAG] Step 20,480, Episode 10
+============================================================
+  Schedule: λ=0.0000, H=0.0174, τ=0.7302
+  Episode:  Return=8360.70, Steps=2048
+  Rewards:  r_ext=4.082, AR=0.000, r'=4.082
+  CanInteract: 0.95 (agent in dilemma region)
+  Moral:    1782 decisions (134 help / 1648 harm)
+  PR:       0.075 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [90, 40, 63, 73, 134, 1648]
+  ||E||:    0.272
+Training:   8%| | 40960/500000 [02:01<33:51, 225.91it/s, ep=19, r=459.26, λ=0.000, H=0.17, ||E||=0.43
+============================================================
+[DIAG] Step 40,960, Episode 20
+============================================================
+  Schedule: λ=0.0000, H=0.0151, τ=0.5333
+  Episode:  Return=9723.40, Steps=2048
+  Rewards:  r_ext=4.748, AR=0.000, r'=4.748
+  CanInteract: 0.97 (agent in dilemma region)
+  Moral:    1956 decisions (13 help / 1943 harm)
+  PR:       0.007 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [40, 21, 13, 18, 13, 1943]
+  ||E||:    0.425
+Training:  12%| | 61440/500000 [03:34<32:56, 221.90it/s, ep=29, r=475.21, λ=0.000, H=0.04, ||E||=0.42
+============================================================
+[DIAG] Step 61,440, Episode 30
+============================================================
+  Schedule: λ=0.0000, H=0.0131, τ=0.3894
+  Episode:  Return=10040.10, Steps=2048
+  Rewards:  r_ext=4.902, AR=0.000, r'=4.902
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2010 decisions (2 help / 2008 harm)
+  PR:       0.001 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [10, 7, 4, 17, 2, 2008]
+  ||E||:    0.429
+Training:  16%|▏| 81920/500000 [05:06<31:19, 222.42it/s, ep=39, r=476.32, λ=0.000, H=0.02, ||E||=0.43
+============================================================
+[DIAG] Step 81,920, Episode 40
+============================================================
+  Schedule: λ=0.0000, H=0.0113, τ=0.2844
+  Episode:  Return=10063.25, Steps=2048
+  Rewards:  r_ext=4.914, AR=0.000, r'=4.914
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2013 decisions (0 help / 2013 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [6, 6, 9, 14, 0, 2013]
+  ||E||:    0.419
+Training:  20%|▏| 102400/500000 [06:38<29:54, 221.51it/s, ep=49, r=480.50, λ=0.000, H=0.02, ||E||=0.4
+============================================================
+[DIAG] Step 102,400, Episode 50
+============================================================
+  Schedule: λ=0.0000, H=0.0098, τ=0.2077
+  Episode:  Return=10058.20, Steps=2048
+  Rewards:  r_ext=4.911, AR=0.000, r'=4.911
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2012 decisions (0 help / 2012 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [15, 4, 9, 8, 0, 2012]
+  ||E||:    0.423
+Training:  25%|▏| 122880/500000 [08:10<28:15, 222.45it/s, ep=59, r=480.21, λ=0.000, H=0.01, ||E||=0.4
+============================================================
+[DIAG] Step 122,880, Episode 60
+============================================================
+  Schedule: λ=0.0000, H=0.0085, τ=0.1516
+  Episode:  Return=10083.45, Steps=2048
+  Rewards:  r_ext=4.924, AR=0.000, r'=4.924
+  CanInteract: 0.99 (agent in dilemma region)
+  Moral:    2017 decisions (0 help / 2017 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [11, 6, 10, 4, 0, 2017]
+  ||E||:    0.439
+Training:  29%|▎| 143360/500000 [09:42<26:45, 222.09it/s, ep=69, r=479.54, λ=0.000, H=0.10, ||E||=0.4
+============================================================
+[DIAG] Step 143,360, Episode 70
+============================================================
+  Schedule: λ=0.0000, H=0.0074, τ=0.1107
+  Episode:  Return=9265.35, Steps=2048
+  Rewards:  r_ext=4.524, AR=0.000, r'=4.524
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1855 decisions (0 help / 1855 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [172, 6, 8, 7, 0, 1855]
+  ||E||:    0.290
+Training:  33%|▎| 163840/500000 [11:15<25:20, 221.07it/s, ep=79, r=480.65, λ=0.000, H=0.00, ||E||=0.4
+============================================================
+[DIAG] Step 163,840, Episode 80
+============================================================
+  Schedule: λ=0.0000, H=0.0064, τ=0.0809
+  Episode:  Return=10093.55, Steps=2048
+  Rewards:  r_ext=4.928, AR=0.000, r'=4.928
+  CanInteract: 0.99 (agent in dilemma region)
+  Moral:    2019 decisions (0 help / 2019 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [6, 12, 4, 7, 0, 2019]
+  ||E||:    0.419
+Training:  37%|▎| 184320/500000 [12:47<23:45, 221.49it/s, ep=89, r=479.54, λ=0.000, H=0.01, ||E||=0.4
+============================================================
+[DIAG] Step 184,320, Episode 90
+============================================================
+  Schedule: λ=0.0000, H=0.0056, τ=0.0590
+  Episode:  Return=10099.65, Steps=2048
+  Rewards:  r_ext=4.931, AR=0.000, r'=4.931
+  CanInteract: 0.99 (agent in dilemma region)
+  Moral:    2021 decisions (1 help / 2020 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [11, 8, 2, 6, 1, 2020]
+  ||E||:    0.426
+Training:  41%|▍| 204800/500000 [14:19<22:08, 222.16it/s, ep=99, r=449.71, λ=0.000, H=0.17, ||E||=0.4
+============================================================
+[DIAG] Step 204,800, Episode 100
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0431
+  Episode:  Return=9774.70, Steps=2048
+  Rewards:  r_ext=4.773, AR=0.000, r'=4.773
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1982 decisions (33 help / 1949 harm)
+  PR:       0.017 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [41, 17, 2, 6, 33, 1949]
+  ||E||:    0.425
+Training:  45%|▍| 225280/500000 [15:52<20:36, 222.19it/s, ep=109, r=436.75, λ=0.000, H=0.22, ||E||=0.
+============================================================
+[DIAG] Step 225,280, Episode 110
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0315
+  Episode:  Return=9340.80, Steps=2048
+  Rewards:  r_ext=4.561, AR=0.000, r'=4.561
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1984 decisions (144 help / 1840 harm)
+  PR:       0.073 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [45, 6, 4, 9, 144, 1840]
+  ||E||:    0.314
+Training:  49%|▍| 245760/500000 [17:24<19:04, 222.05it/s, ep=119, r=450.86, λ=0.000, H=0.11, ||E||=0.
+============================================================
+[DIAG] Step 245,760, Episode 120
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0230
+  Episode:  Return=9681.35, Steps=2048
+  Rewards:  r_ext=4.727, AR=0.000, r'=4.727
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2015 decisions (98 help / 1917 harm)
+  PR:       0.049 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [14, 7, 5, 7, 98, 1917]
+  ||E||:    0.428
+Training:  53%|▌| 266240/500000 [18:56<17:31, 222.26it/s, ep=129, r=441.30, λ=0.000, H=0.07, ||E||=0.
+============================================================
+[DIAG] Step 266,240, Episode 130
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0168
+  Episode:  Return=8729.35, Steps=2048
+  Rewards:  r_ext=4.262, AR=0.000, r'=4.262
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2015 decisions (336 help / 1679 harm)
+  PR:       0.167 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [18, 4, 5, 6, 336, 1679]
+  ||E||:    0.448
+Training:  57%|▌| 286720/500000 [20:29<16:02, 221.59it/s, ep=139, r=398.71, λ=0.000, H=0.11, ||E||=0.
+============================================================
+[DIAG] Step 286,720, Episode 140
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0123
+  Episode:  Return=8994.20, Steps=2048
+  Rewards:  r_ext=4.392, AR=0.000, r'=4.392
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2012 decisions (266 help / 1746 harm)
+  PR:       0.132 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [14, 13, 6, 3, 266, 1746]
+  ||E||:    0.422
+Training:  61%|▌| 307200/500000 [22:01<14:28, 222.02it/s, ep=149, r=415.15, λ=0.000, H=0.10, ||E||=0.
+============================================================
+[DIAG] Step 307,200, Episode 150
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=8572.30, Steps=2048
+  Rewards:  r_ext=4.186, AR=0.000, r'=4.186
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2014 decisions (374 help / 1640 harm)
+  PR:       0.186 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [13, 6, 2, 13, 374, 1640]
+  ||E||:    0.280
+Training:  66%|▋| 327680/500000 [23:33<12:53, 222.91it/s, ep=159, r=379.02, λ=0.000, H=0.11, ||E||=0.
+============================================================
+[DIAG] Step 327,680, Episode 160
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=8927.05, Steps=2048
+  Rewards:  r_ext=4.359, AR=0.000, r'=4.359
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2009 decisions (279 help / 1730 harm)
+  PR:       0.139 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [13, 14, 7, 5, 279, 1730]
+  ||E||:    0.286
+Training:  70%|▋| 348160/500000 [25:06<11:27, 220.80it/s, ep=169, r=423.51, λ=0.000, H=0.10, ||E||=0.
+============================================================
+[DIAG] Step 348,160, Episode 170
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=8799.05, Steps=2048
+  Rewards:  r_ext=4.296, AR=0.000, r'=4.296
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2009 decisions (311 help / 1698 harm)
+  PR:       0.155 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [20, 4, 7, 8, 311, 1698]
+  ||E||:    0.430
+Training:  74%|▋| 368640/500000 [26:38<09:51, 222.06it/s, ep=179, r=415.27, λ=0.000, H=0.07, ||E||=0.
+============================================================
+[DIAG] Step 368,640, Episode 180
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9347.90, Steps=2048
+  Rewards:  r_ext=4.564, AR=0.000, r'=4.564
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2006 decisions (170 help / 1836 harm)
+  PR:       0.085 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [12, 8, 7, 15, 170, 1836]
+  ||E||:    0.428
+Training:  78%|▊| 389120/500000 [28:10<08:20, 221.64it/s, ep=189, r=375.27, λ=0.000, H=0.09, ||E||=0.
+============================================================
+[DIAG] Step 389,120, Episode 190
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=7976.75, Steps=2048
+  Rewards:  r_ext=3.895, AR=0.000, r'=3.895
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2003 decisions (509 help / 1494 harm)
+  PR:       0.254 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [22, 7, 5, 11, 509, 1494]
+  ||E||:    0.422
+Training:  82%|▊| 409600/500000 [29:43<06:48, 221.39it/s, ep=199, r=406.11, λ=0.000, H=0.08, ||E||=0.
+============================================================
+[DIAG] Step 409,600, Episode 200
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=8942.25, Steps=2048
+  Rewards:  r_ext=4.366, AR=0.000, r'=4.366
+  CanInteract: 0.97 (agent in dilemma region)
+  Moral:    1993 decisions (255 help / 1738 harm)
+  PR:       0.128 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [28, 14, 2, 11, 255, 1738]
+  ||E||:    0.424
+Training:  86%|▊| 430080/500000 [31:15<05:14, 222.47it/s, ep=209, r=427.08, λ=0.000, H=0.07, ||E||=0.
+============================================================
+[DIAG] Step 430,080, Episode 210
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=8793.10, Steps=2048
+  Rewards:  r_ext=4.294, AR=0.000, r'=4.294
+  CanInteract: 0.96 (agent in dilemma region)
+  Moral:    1950 decisions (238 help / 1712 harm)
+  PR:       0.122 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [54, 24, 5, 15, 238, 1712]
+  ||E||:    0.422
+Training:  90%|▉| 450560/500000 [32:47<03:42, 222.02it/s, ep=219, r=427.94, λ=0.000, H=0.09, ||E||=0.
+============================================================
+[DIAG] Step 450,560, Episode 220
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9301.25, Steps=2048
+  Rewards:  r_ext=4.542, AR=0.000, r'=4.542
+  CanInteract: 0.97 (agent in dilemma region)
+  Moral:    1973 decisions (140 help / 1833 harm)
+  PR:       0.071 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [36, 12, 4, 23, 140, 1833]
+  ||E||:    0.429
+Training:  94%|▉| 471040/500000 [34:20<02:10, 221.21it/s, ep=229, r=445.77, λ=0.000, H=0.04, ||E||=0.
+============================================================
+[DIAG] Step 471,040, Episode 230
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9190.90, Steps=2048
+  Rewards:  r_ext=4.488, AR=0.000, r'=4.488
+  CanInteract: 0.97 (agent in dilemma region)
+  Moral:    1986 decisions (184 help / 1802 harm)
+  PR:       0.093 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [28, 12, 2, 20, 184, 1802]
+  ||E||:    0.430
+Training:  98%|▉| 491520/500000 [35:52<00:38, 221.99it/s, ep=239, r=457.38, λ=0.000, H=0.03, ||E||=0.
+============================================================
+[DIAG] Step 491,520, Episode 240
+============================================================
+  Schedule: λ=0.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9369.25, Steps=2048
+  Rewards:  r_ext=4.575, AR=0.000, r'=4.575
+  CanInteract: 0.97 (agent in dilemma region)
+  Moral:    1973 decisions (123 help / 1850 harm)
+  PR:       0.062 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [37, 17, 3, 18, 123, 1850]
+  ||E||:    0.452
+Training: 501760it [36:39, 228.16it/s, ep=245, r=433.05, λ=0.000, H=0.10, ||E||=0.42]                
+
+============================================================
+[train] Complete!
+  Steps: 501,760
+  Episodes: 245
+  Time: 0.61 hours
+  Best eval reward: -inf
+  Final λ_reg: 0.0000
+  Saved to: results/moral_temptation/ppo_baseline_paper/seed_5
+============================================================
+⚡ master ~/MARL python3 train.py --config configs/model/cpo_baseline.yaml --env-config configs/envs/moral_temptation.yaml --exp-name cpo_baseline --total-steps 500000 --seed 1
+[train] Device: cuda
+[GPU] CUDA optimizations enabled:
+  TF32 matmul: True
+  cuDNN benchmark: True
+  GPU: NVIDIA H100 80GB HBM3
+  Memory: 84.9 GB
+/teamspace/studios/this_studio/MARL/train.py:830: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = CudaGradScaler()
+[GPU] Mixed precision (AMP): Enabled
+[train] Environment: moral_temptation
+[train] Obs: (16,), Act: 6
+
+[train] Agent:
+  IAE dim: 32
+  Hidden: 128
+  Attention: False
+  Hebbian: False
+  Alignment regret: True
+  Forecaster input dim: 55
+
+[train] Schedule configuration:
+  lambda_reg: 0 → 2.0 over 0 steps
+  entropy:    0.02 → 0.005 over 200000 steps
+  tau:        1.0 → 0.01 over 300000 steps
+
+[train] Features:
+  Evaluation: STOCHASTIC (paper-faithful)
+  Action masking: ENABLED (no invalid help/steal)
+Training:   1%|  | 4096/500000 [00:29<58:40, 140.85it/s, ep=2, r=121.66, λ=2.000, H=1.69, ||E||=0.43]^CTraceback (most recent call last):
+  File "/teamspace/studios/this_studio/MARL/train.py", line 1021, in <module>
+    main()
+  File "/teamspace/studios/this_studio/MARL/train.py", line 932, in main
+    rollout_data, ep_reward, steps = collect_rollout(
+                                     ^^^^^^^^^^^^^^^^
+  File "/teamspace/studios/this_studio/MARL/train.py", line 285, in collect_rollout
+    dist = torch.distributions.Categorical(probs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zeus/miniconda3/envs/cloudspace/lib/python3.12/site-packages/torch/distributions/categorical.py", line 81, in __init__
+    super().__init__(batch_shape, validate_args=validate_args)
+  File "/home/zeus/miniconda3/envs/cloudspace/lib/python3.12/site-packages/torch/distributions/distribution.py", line 75, in __init__
+    valid = constraint.check(value)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zeus/miniconda3/envs/cloudspace/lib/python3.12/site-packages/torch/distributions/constraints.py", line 520, in check
+    return torch.all(value >= 0, dim=-1) & ((value.sum(-1) - 1).abs() < 1e-6)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+Training:   1%| | 4096/500000 [00:34<1:09:39, 118.64it/s, ep=2, r=121.66, λ=2.000, H=1.69, ||E||=0.43
+
+⚡ master ~/MARL python3 train_esai.py --config configs/model/cpo_baseline.yaml --env-config configs/
+envs/moral_temptation.yaml --exp-name cpo_baseline --total-steps 500000 --seed 1
+[train] Device: cuda
+[GPU] CUDA optimizations enabled:
+  TF32 matmul: True
+  cuDNN benchmark: True
+  GPU: NVIDIA H100 80GB HBM3
+  Memory: 84.9 GB
+/teamspace/studios/this_studio/MARL/train_esai.py:1064: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = CudaGradScaler()
+[GPU] Mixed precision (AMP): Enabled
+[train] Environment: moral_temptation
+[train] Obs: (16,), Act: 6
+  Kappa (neighbor harm): 0.05
+
+[train] Agent:
+  IAE dim: 32
+  Hidden: 128
+  Attention: False
+  Hebbian: False
+  Alignment regret: True
+  Forecaster input dim: 55
+
+[train] Schedule configuration:
+  lambda_reg: 0 → 2.0 over 0 steps
+  entropy:    0.02 → 0.005 over 200000 steps
+  tau:        1.0 → 0.01 over 300000 steps
+
+[train] Features:
+  Evaluation: STOCHASTIC (paper-faithful)
+  Action masking: ENABLED (no invalid help/steal)
+  Separate forecaster optimizer: ENABLED
+Training:   4%| | 20480/500000 [02:45<1:04:36, 123.70it/s, ep=9, r=369.12, λ=2.000, H=0.76, ||E||=0.5
+============================================================
+[DIAG] Step 20,480, Episode 10
+============================================================
+  Schedule: λ=2.0000, H=0.0174, τ=0.7302
+  Episode:  Return=8198.45, Steps=2048
+  Rewards:  r_ext=4.003, AR=0.254, r'=3.494
+  CanInteract: 0.94 (agent in dilemma region)
+  Moral:    1757 decisions (143 help / 1614 harm)
+  PR:       0.081 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [84, 67, 73, 67, 143, 1614]
+  ||E||:    0.449
+Training:   8%| | 40960/500000 [05:30<1:01:37, 124.13it/s, ep=19, r=468.69, λ=2.000, H=0.11, ||E||=0.
+============================================================
+[DIAG] Step 40,960, Episode 20
+============================================================
+  Schedule: λ=2.0000, H=0.0151, τ=0.5333
+  Episode:  Return=9879.75, Steps=2048
+  Rewards:  r_ext=4.824, AR=0.238, r'=4.348
+  CanInteract: 0.97 (agent in dilemma region)
+  Moral:    1983 decisions (8 help / 1975 harm)
+  PR:       0.004 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [22, 19, 10, 14, 8, 1975]
+  ||E||:    0.479
+Training:  12%| | 61440/500000 [07:35<44:58, 162.52it/s, ep=29, r=478.82, λ=2.000, H=0.03, ||E||=0.47
+============================================================
+[DIAG] Step 61,440, Episode 30
+============================================================
+  Schedule: λ=2.0000, H=0.0131, τ=0.3894
+  Episode:  Return=10064.30, Steps=2048
+  Rewards:  r_ext=4.914, AR=0.225, r'=4.463
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2014 decisions (1 help / 2013 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [7, 8, 12, 7, 1, 2013]
+  ||E||:    0.473
+Training:  16%|▏| 81920/500000 [10:20<55:56, 124.56it/s, ep=39, r=479.49, λ=2.000, H=0.01, ||E||=0.49
+============================================================
+[DIAG] Step 81,920, Episode 40
+============================================================
+  Schedule: λ=2.0000, H=0.0113, τ=0.2844
+  Episode:  Return=10053.15, Steps=2048
+  Rewards:  r_ext=4.909, AR=0.211, r'=4.487
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2011 decisions (0 help / 2011 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [14, 15, 3, 5, 0, 2011]
+  ||E||:    0.463
+Training:  20%|▏| 102400/500000 [13:05<53:11, 124.56it/s, ep=49, r=479.92, λ=2.000, H=0.01, ||E||=0.4
+============================================================
+[DIAG] Step 102,400, Episode 50
+============================================================
+  Schedule: λ=2.0000, H=0.0098, τ=0.2077
+  Episode:  Return=10078.40, Steps=2048
+  Rewards:  r_ext=4.921, AR=0.199, r'=4.523
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2016 decisions (0 help / 2016 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [5, 9, 6, 12, 0, 2016]
+  ||E||:    0.472
+Training:  25%|▏| 122880/500000 [15:50<50:48, 123.71it/s, ep=59, r=479.30, λ=2.000, H=0.02, ||E||=0.4
+============================================================
+[DIAG] Step 122,880, Episode 60
+============================================================
+  Schedule: λ=2.0000, H=0.0085, τ=0.1516
+  Episode:  Return=10044.10, Steps=2048
+  Rewards:  r_ext=4.904, AR=0.188, r'=4.528
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2010 decisions (1 help / 2009 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [7, 13, 8, 10, 1, 2009]
+  ||E||:    0.468
+Training:  29%|▎| 143360/500000 [18:35<47:48, 124.34it/s, ep=69, r=377.83, λ=2.000, H=0.41, ||E||=0.5
+============================================================
+[DIAG] Step 143,360, Episode 70
+============================================================
+  Schedule: λ=2.0000, H=0.0074, τ=0.1107
+  Episode:  Return=8829.15, Steps=2048
+  Rewards:  r_ext=4.311, AR=0.186, r'=3.939
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1771 decisions (3 help / 1768 harm)
+  PR:       0.002 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [156, 19, 80, 22, 3, 1768]
+  ||E||:    0.511
+Training:  33%|▎| 163840/500000 [21:20<45:10, 124.02it/s, ep=79, r=476.61, λ=2.000, H=0.06, ||E||=0.4
+============================================================
+[DIAG] Step 163,840, Episode 80
+============================================================
+  Schedule: λ=2.0000, H=0.0064, τ=0.0809
+  Episode:  Return=9917.85, Steps=2048
+  Rewards:  r_ext=4.843, AR=0.175, r'=4.493
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1985 decisions (1 help / 1984 harm)
+  PR:       0.001 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [37, 17, 0, 9, 1, 1984]
+  ||E||:    0.472
+Training:  37%|▎| 184320/500000 [24:05<42:18, 124.35it/s, ep=89, r=470.06, λ=2.000, H=0.04, ||E||=0.4
+============================================================
+[DIAG] Step 184,320, Episode 90
+============================================================
+  Schedule: λ=2.0000, H=0.0056, τ=0.0590
+  Episode:  Return=9992.55, Steps=2048
+  Rewards:  r_ext=4.879, AR=0.158, r'=4.564
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1999 decisions (0 help / 1999 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [18, 25, 0, 6, 0, 1999]
+  ||E||:    0.476
+Training:  41%|▍| 204800/500000 [26:50<39:37, 124.18it/s, ep=99, r=478.96, λ=2.000, H=0.01, ||E||=0.4
+============================================================
+[DIAG] Step 204,800, Episode 100
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0431
+  Episode:  Return=10068.30, Steps=2048
+  Rewards:  r_ext=4.916, AR=0.147, r'=4.622
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2014 decisions (0 help / 2014 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [7, 17, 1, 9, 0, 2014]
+  ||E||:    0.472
+Training:  45%|▍| 225280/500000 [29:34<36:49, 124.34it/s, ep=109, r=454.48, λ=2.000, H=0.10, ||E||=0.
+============================================================
+[DIAG] Step 225,280, Episode 110
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0315
+  Episode:  Return=9724.90, Steps=2048
+  Rewards:  r_ext=4.748, AR=0.134, r'=4.480
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1946 decisions (0 help / 1946 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [14, 78, 2, 8, 0, 1946]
+  ||E||:    0.466
+Training:  49%|▍| 245760/500000 [32:19<34:08, 124.11it/s, ep=119, r=477.57, λ=2.000, H=0.01, ||E||=0.
+============================================================
+[DIAG] Step 245,760, Episode 120
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0230
+  Episode:  Return=9917.85, Steps=2048
+  Rewards:  r_ext=4.843, AR=0.133, r'=4.576
+  CanInteract: 0.97 (agent in dilemma region)
+  Moral:    1985 decisions (1 help / 1984 harm)
+  PR:       0.001 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [6, 8, 1, 48, 1, 1984]
+  ||E||:    0.472
+Training:  53%|▌| 266240/500000 [35:04<31:20, 124.28it/s, ep=129, r=479.44, λ=2.000, H=0.01, ||E||=0.
+============================================================
+[DIAG] Step 266,240, Episode 130
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0168
+  Episode:  Return=10073.35, Steps=2048
+  Rewards:  r_ext=4.919, AR=0.125, r'=4.668
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2015 decisions (0 help / 2015 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [6, 20, 2, 5, 0, 2015]
+  ||E||:    0.475
+Training:  57%|▌| 286720/500000 [37:49<28:36, 124.24it/s, ep=139, r=472.88, λ=2.000, H=0.04, ||E||=0.
+============================================================
+[DIAG] Step 286,720, Episode 140
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0123
+  Episode:  Return=10060.30, Steps=2048
+  Rewards:  r_ext=4.912, AR=0.123, r'=4.666
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2014 decisions (2 help / 2012 harm)
+  PR:       0.001 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [10, 14, 4, 6, 2, 2012]
+  ||E||:    0.462
+Training:  61%|▌| 307200/500000 [40:34<25:52, 124.22it/s, ep=149, r=480.65, λ=2.000, H=0.01, ||E||=0.
+============================================================
+[DIAG] Step 307,200, Episode 150
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0100
+  Episode:  Return=10083.45, Steps=2048
+  Rewards:  r_ext=4.924, AR=0.122, r'=4.680
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2017 decisions (0 help / 2017 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [5, 6, 15, 5, 0, 2017]
+  ||E||:    0.465
+Training:  66%|▋| 327680/500000 [43:19<23:10, 123.92it/s, ep=159, r=480.02, λ=2.000, H=0.01, ||E||=0.
+============================================================
+[DIAG] Step 327,680, Episode 160
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0100
+  Episode:  Return=10093.55, Steps=2048
+  Rewards:  r_ext=4.928, AR=0.114, r'=4.701
+  CanInteract: 0.99 (agent in dilemma region)
+  Moral:    2019 decisions (0 help / 2019 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [7, 9, 6, 7, 0, 2019]
+  ||E||:    0.477
+Training:  70%|▋| 348160/500000 [46:03<20:22, 124.18it/s, ep=169, r=480.65, λ=2.000, H=0.00, ||E||=0.
+============================================================
+[DIAG] Step 348,160, Episode 170
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0100
+  Episode:  Return=10078.40, Steps=2048
+  Rewards:  r_ext=4.921, AR=0.109, r'=4.703
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2016 decisions (0 help / 2016 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [7, 14, 8, 3, 0, 2016]
+  ||E||:    0.476
+Training:  74%|▋| 368640/500000 [48:49<17:40, 123.86it/s, ep=179, r=478.96, λ=2.000, H=0.01, ||E||=0.
+============================================================
+[DIAG] Step 368,640, Episode 180
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0100
+  Episode:  Return=10083.45, Steps=2048
+  Rewards:  r_ext=4.924, AR=0.102, r'=4.720
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2017 decisions (0 help / 2017 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [4, 12, 2, 13, 0, 2017]
+  ||E||:    0.479
+Training:  78%|▊| 389120/500000 [51:34<14:52, 124.18it/s, ep=189, r=478.96, λ=2.000, H=0.01, ||E||=0.
+============================================================
+[DIAG] Step 389,120, Episode 190
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0100
+  Episode:  Return=10073.35, Steps=2048
+  Rewards:  r_ext=4.919, AR=0.098, r'=4.722
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2015 decisions (0 help / 2015 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [2, 19, 7, 5, 0, 2015]
+  ||E||:    0.454
+Training:  82%|▊| 409600/500000 [54:19<12:10, 123.72it/s, ep=199, r=480.16, λ=2.000, H=0.00, ||E||=0.
+============================================================
+[DIAG] Step 409,600, Episode 200
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0100
+  Episode:  Return=10118.80, Steps=2048
+  Rewards:  r_ext=4.941, AR=0.099, r'=4.743
+  CanInteract: 0.99 (agent in dilemma region)
+  Moral:    2024 decisions (0 help / 2024 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [6, 8, 5, 5, 0, 2024]
+  ||E||:    0.462
+Training:  86%|▊| 430080/500000 [57:04<09:22, 124.39it/s, ep=209, r=470.55, λ=2.000, H=0.02, ||E||=0.
+============================================================
+[DIAG] Step 430,080, Episode 210
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0100
+  Episode:  Return=10098.60, Steps=2048
+  Rewards:  r_ext=4.931, AR=0.095, r'=4.742
+  CanInteract: 0.99 (agent in dilemma region)
+  Moral:    2020 decisions (0 help / 2020 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [3, 8, 7, 10, 0, 2020]
+  ||E||:    0.476
+Training:  90%|▉| 450560/500000 [59:49<06:38, 123.99it/s, ep=219, r=480.89, λ=2.000, H=0.00, ||E||=0.
+============================================================
+[DIAG] Step 450,560, Episode 220
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0100
+  Episode:  Return=10098.60, Steps=2048
+  Rewards:  r_ext=4.931, AR=0.092, r'=4.746
+  CanInteract: 0.99 (agent in dilemma region)
+  Moral:    2020 decisions (0 help / 2020 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [4, 5, 6, 13, 0, 2020]
+  ||E||:    0.473
+Training:  94%|▉| 471040/500000 [1:02:34<03:53, 124.18it/s, ep=229, r=481.13, λ=2.000, H=0.03, ||E||=
+============================================================
+[DIAG] Step 471,040, Episode 230
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0100
+  Episode:  Return=9580.55, Steps=2048
+  Rewards:  r_ext=4.678, AR=0.091, r'=4.496
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    1919 decisions (2 help / 1917 harm)
+  PR:       0.001 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [9, 12, 95, 13, 2, 1917]
+  ||E||:    0.472
+Training:  98%|▉| 491520/500000 [1:05:18<01:08, 124.40it/s, ep=239, r=480.89, λ=2.000, H=0.00, ||E||=
+============================================================
+[DIAG] Step 491,520, Episode 240
+============================================================
+  Schedule: λ=2.0000, H=0.0050, τ=0.0100
+  Episode:  Return=10083.45, Steps=2048
+  Rewards:  r_ext=4.924, AR=0.089, r'=4.747
+  CanInteract: 0.98 (agent in dilemma region)
+  Moral:    2017 decisions (0 help / 2017 harm)
+  PR:       0.000 (conditional on engagement)
+  Invalid:  0 (0.0%) [should be ~0% with masking]
+  Actions:  [9, 9, 8, 5, 0, 2017]
+  ||E||:    0.470
+Training: 501760it [1:06:42, 125.36it/s, ep=245, r=479.92, λ=2.000, H=0.01, ||E||=0.49]              
+
+============================================================
+[train] Complete!
+  Steps: 501,760
+  Episodes: 245
+  Time: 1.11 hours
+  Best eval reward: -inf
+  Final λ_reg: 2.0000
+  Saved to: results/moral_temptation/cpo_baseline/seed_1
+============================================================
+⚡ master ~/MARL Connection to ssh.lightning.ai closed.
+haxx_sh@Harshs-MacBook-Air MARL % ssh s_01kgeatf1nd2wz662w93e8cvpq@ssh.lightning.ai
+Connection reset by 34.133.207.199 port 22
+haxx_sh@Harshs-MacBook-Air MARL % 
