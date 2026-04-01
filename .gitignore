@@ -121,12 +121,17 @@ wandb/
 *.zip
 *.tar.gz
 
-# Large data (regenerable)
+# -----------------------------------------------------------------------------
+# Release cleanup rules
+# -----------------------------------------------------------------------------
+
+# Regenerable experiment outputs
 results/
+results*/
 data/
 MAR_results_moral_temptation/
 
-# Dev notes & reports (private)
+# Private logs/notes
 LogsOfESAI.txt
 NEWESAIV3REPORT.txt
 PPOBASELINEREPORT*.txt
@@ -135,57 +140,23 @@ BUG_REPORT.md
 Esai experimental workflow.md
 Esai quick start priority guide*
 
-# Archives & duplicates
+# Duplicate/temp collections
 Everythingyouneed/
 moral_temptation 3/
+research_artifacts/
 research_artifacts*/
-results*/
 
-# Old paper versions (keep only locally)
+# Legacy/superseded paper dirs (local only)
 Embedded_Safety_Aligned_Intelligence_for_Multi_Agent_Reinforcement_Learning/
 Embedded_Safety_Aligned_Intelligence_for_Multi_Agent_Reinforcement_Learning_camera_ready/
 paper/
 
-# Debug images
+# Debug images and local docs noise
 randomization_check_*.png
+docs/figures/
+docs/LICENSE.txt
 
-# -----------------------------------------------------------------------------
-# Camera-ready release exclusions (AAMAS/ALA)
-# Keep code/config/scripts, exclude regenerable artifacts and private notes.
-# -----------------------------------------------------------------------------
-
-# Large regenerable experiment outputs
-results/
-data/
-MAR_results_moral_temptation/
-
-# Local env
-.venv/
-
-# Private reviewer/dev notes and raw logs
-Recommendation.txt
-LogsOfESAI.txt
-NEWESAIV3REPORT.txt
-PPOBASELINEREPORT .txt
-BUG_REPORT.md
-Esai experimental workflow.md
-Esai quick start priority guide *.md
-
-# Duplicate/temporary artifact collections
-Everythingyouneed/
-moral_temptation 3/
-research_artifacts/
-research_artifacts */
-
-# Archives/debug images
-*.zip
-randomization_check_*.png
-
-# Superseded paper directories
-Embedded_Safety_Aligned_Intelligence_for_Multi_Agent_Reinforcement_Learning/
-paper/
-
-# Dev-only scripts (not for public repo)
+# Dev-only helper scripts (keep implementation-focused repo)
 generate_research_artifacts.py
 inspect_data.py
 parse_and_plot.py
