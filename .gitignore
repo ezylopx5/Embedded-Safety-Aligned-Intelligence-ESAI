@@ -120,3 +120,78 @@ wandb/
 # Archives
 *.zip
 *.tar.gz
+
+# Large data (regenerable)
+results/
+data/
+MAR_results_moral_temptation/
+
+# Dev notes & reports (private)
+LogsOfESAI.txt
+NEWESAIV3REPORT.txt
+PPOBASELINEREPORT*.txt
+Recommendation.txt
+BUG_REPORT.md
+Esai experimental workflow.md
+Esai quick start priority guide*
+
+# Archives & duplicates
+Everythingyouneed/
+moral_temptation 3/
+research_artifacts*/
+results*/
+
+# Old paper versions (keep only locally)
+Embedded_Safety_Aligned_Intelligence_for_Multi_Agent_Reinforcement_Learning/
+Embedded_Safety_Aligned_Intelligence_for_Multi_Agent_Reinforcement_Learning_camera_ready/
+paper/
+
+# Debug images
+randomization_check_*.png
+
+# -----------------------------------------------------------------------------
+# Camera-ready release exclusions (AAMAS/ALA)
+# Keep code/config/scripts, exclude regenerable artifacts and private notes.
+# -----------------------------------------------------------------------------
+
+# Large regenerable experiment outputs
+results/
+data/
+MAR_results_moral_temptation/
+
+# Local env
+.venv/
+
+# Private reviewer/dev notes and raw logs
+Recommendation.txt
+LogsOfESAI.txt
+NEWESAIV3REPORT.txt
+PPOBASELINEREPORT .txt
+BUG_REPORT.md
+Esai experimental workflow.md
+Esai quick start priority guide *.md
+
+# Duplicate/temporary artifact collections
+Everythingyouneed/
+moral_temptation 3/
+research_artifacts/
+research_artifacts */
+
+# Archives/debug images
+*.zip
+randomization_check_*.png
+
+# Superseded paper directories
+Embedded_Safety_Aligned_Intelligence_for_Multi_Agent_Reinforcement_Learning/
+paper/
+
+# Dev-only scripts (not for public repo)
+generate_research_artifacts.py
+inspect_data.py
+parse_and_plot.py
+print_summary.py
+verify_randomization.py
+verfication.sh
+scripts/plot_results.py
+scripts/generate_paper_figs.py
+scripts/generate_demos.py

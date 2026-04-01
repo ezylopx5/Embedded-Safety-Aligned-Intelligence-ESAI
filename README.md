@@ -2,21 +2,25 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Accepted: ALA@AAMAS 2026](https://img.shields.io/badge/Accepted-ALA%40AAMAS%202026-green.svg)]()
 
 Official implementation of **ESAI** from the paper:
 
 > **Embedded Safety-Aligned Intelligence for Multi-Agent Reinforcement Learning**  
-> ALA @ AAMAS 2026
+> Harsh Rathva, Pruthwik Mishra  
+> Sardar Vallabhbhai National Institute of Technology (SVNIT), Surat, India  
+> ALA @ AAMAS 2026 — Paphos, Cyprus
 
 ---
 
 ## 🎯 Overview
 
-ESAI introduces **Internal Alignment Embeddings (IAE)**: differentiable latent regulators that predict and attenuate externalized harm during multi-agent coordination.
+ESAI introduces **Internal Alignment Embeddings (IAE)**: differentiable latent regulators that predict and attenuate externalized harm during multi-agent coordination. Unlike external reward shaping or post-hoc safety constraints, IAE are learned latent variables that modulate policy gradients toward harm reduction via attention gating and graph diffusion.
 
-### Key Results
+### Key Results (Proof-of-Concept)
 - **100% prosocial rate** on Moral Temptation environment (vs 6.5% PPO, 0% CPO)
 - **Phase transition** at λ* ≈ 0.08 — below: selfish behavior, above: prosocial alignment
+- **Saturation** at λ ≥ 0.085 — no additional benefit from higher regularization
 - **IAE learns harm representations**: AR(STEAL) = 3.63 vs AR(HELP) ≈ 0
 
 ### Core Mechanisms
@@ -24,6 +28,27 @@ ESAI introduces **Internal Alignment Embeddings (IAE)**: differentiable latent r
 - **Graph diffusion** with similarity-weighted propagation
 - **IAE-weighted attention** for perceptual salience modulation
 - **Hebbian affect-memory** for temporal credit assignment
+
+---
+
+## ⚠️ Current Status
+
+**This is a theoretical framework with proof-of-concept demonstration.**
+
+### ✅ What's Been Demonstrated
+- Framework is mathematically well-defined and implementable
+- Phase transition phenomenon observed at λ* ≈ 0.08
+- Saturation beyond λ ≥ 0.085 (all values yield identical results)
+- IAE learns distinct representations for harmful vs. prosocial actions
+- Full IAE architecture outperforms CPO (penalty-only) in our simplified environment
+
+### ❌ Known Limitations (Acknowledged in Paper)
+- **No comparison to simple reward shaping** (`r' = r_ext - λ·h_t`)
+- **No systematic ablation studies** (component necessity not validated)
+- **Single-seed results** (1-2 seeds per condition, no error bars)
+- **Single simplified environment** (binary choice, no temporal complexity)
+- **Multi-agent components untested** (graph diffusion, bias mitigation)
+- **Missing baselines**: inequity aversion, intrinsic motivation approaches
 
 ---
 
@@ -71,17 +96,22 @@ python evaluate.py --checkpoint results/moral_temptation/esai_seed1/
 
 ---
 
-## 📊 Key Findings
+## 📊 Complete Lambda Sweep Results
 
-| Method | λ | Prosocial Rate |
-|--------|---|----------------|
-| PPO | 0 | 6.5% |
-| CPO | 2.0 | 0% |
-| **ESAI** | 0.085 | **100%** |
-| **ESAI** | 0.5 | **100%** |
-| **ESAI** | 1.0 | **100%** |
+| Method | λ | Prosocial Rate | Entropy | Regime |
+|--------|---|----------------|---------|--------|
+| PPO | 0 | 6.5% | 0.091 | Baseline |
+| CPO | 2.0 | 0.35% | 0.004 | Baseline |
+| ESAI | 0.05 | 6.8% | 0.091 | Selfish |
+| ESAI | 0.078 | 5.0% | 0.004 | Selfish |
+| ESAI | 0.08 | 58.7% | **0.672** | Transition |
+| **ESAI** | **0.085** | **100%** | 0.005 | **Aligned** |
+| **ESAI** | **0.5** | **100%** | 0.050 | **Aligned** |
+| **ESAI** | **1.0** | **100%** | 0.006 | **Aligned** |
 
-> **Key insight**: Alignment regret alone (CPO) is insufficient. The full IAE architecture is necessary.
+> **Key insight**: CPO's failure (0.35%) despite using alignment regret suggests that the alignment penalty alone may be insufficient — but systematic ablation is needed to confirm this.
+
+> **Saturation**: All λ ≥ 0.085 achieve identical results. Use the minimum sufficient value.
 
 ---
 
@@ -90,9 +120,10 @@ python evaluate.py --checkpoint results/moral_temptation/esai_seed1/
 ```bibtex
 @inproceedings{esai2026,
   title={Embedded Safety-Aligned Intelligence for Multi-Agent Reinforcement Learning},
-  author={Anonymous},
-  booktitle={Adaptive and Learning Agents Workshop at AAMAS},
-  year={2026}
+  author={Rathva, Harsh and Mishra, Pruthwik},
+  booktitle={Adaptive and Learning Agents Workshop (ALA) at AAMAS},
+  year={2026},
+  address={Paphos, Cyprus}
 }
 ```
 
