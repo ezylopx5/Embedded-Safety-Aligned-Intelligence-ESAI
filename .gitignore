@@ -166,3 +166,10 @@ verfication.sh
 scripts/plot_results.py
 scripts/generate_paper_figs.py
 scripts/generate_demos.py
+
+# Allow curated gallery assets used in README
+!assets/
+!assets/paper_gallery/
+!assets/paper_gallery/**
+!assets/additional_gallery/
+!assets/additional_gallery/**

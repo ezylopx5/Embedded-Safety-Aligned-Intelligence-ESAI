@@ -128,6 +128,28 @@ The following figures are sourced from `research_artifacts 22-28-03-755` and mir
 | ![Conceptual Diagram](assets/paper_gallery/conceptual_diagram.png) | ![Harm Help Breakdown](assets/paper_gallery/harm_help_breakdown.png) | ![Key Findings Summary](assets/paper_gallery/key_findings_summary.png) |
 | ![Entropy Evolution](assets/paper_gallery/entropy_evolution.png) | ![IAE Norm Evolution](assets/paper_gallery/iae_norm_evolution.png) |  |
 
+### Additional Gallery: `research_artifacts`
+
+| | | |
+|---|---|---|
+| ![Learning Curve PR](assets/additional_gallery/research_artifacts/learning_curve_pr.png)<br><sub>Prosocial rate learning curve over training.</sub> | ![Learning Curve Reward](assets/additional_gallery/research_artifacts/learning_curve_reward.png)<br><sub>External reward learning curve over training.</sub> | ![Lambda Sensitivity PR](assets/additional_gallery/research_artifacts/lambda_sensitivity_pr.png)<br><sub>Prosocial performance sensitivity across lambda values.</sub> |
+| ![Lambda Sensitivity Reward](assets/additional_gallery/research_artifacts/lambda_sensitivity_reward.png)<br><sub>Reward sensitivity across lambda values.</sub> | ![Pareto Frontier](assets/additional_gallery/research_artifacts/pareto_frontier.png)<br><sub>Trade-off frontier between alignment and reward objectives.</sub> |  |
+
+### Additional Gallery: `Everythingyouneed`
+
+| | | |
+|---|---|---|
+| ![Figure 3 Lambda Sweep](assets/additional_gallery/everythingyouneed/Figure3_LambdaSweep_Paper.png)<br><sub>Paper Figure 3: full lambda sweep summary.</sub> | ![Figure 4 Training Curves](assets/additional_gallery/everythingyouneed/Figure4_TrainingCurves_Paper.png)<br><sub>Paper Figure 4: training dynamics comparison.</sub> | ![Figure 5 Pareto Frontier](assets/additional_gallery/everythingyouneed/Figure5_ParetoFrontier_Paper.png)<br><sub>Paper Figure 5: Pareto frontier of safety vs utility.</sub> |
+| ![Figure 6 Mechanism Comparison](assets/additional_gallery/everythingyouneed/Figure6_MechanismComparison_Paper.png)<br><sub>Paper Figure 6: mechanism-level comparison.</sub> | ![Complete Lambda Sweep Analysis](assets/additional_gallery/everythingyouneed/complete_lambda_sweep_analysis.png)<br><sub>Detailed analysis of complete lambda sweep behavior.</sub> | ![CPO Detailed Analysis](assets/additional_gallery/everythingyouneed/cpo_detailed_analysis.png)<br><sub>CPO baseline diagnostics and behavioral profile.</sub> |
+| ![ESAI Analysis Plots](assets/additional_gallery/everythingyouneed/esai_analysis_plots.png)<br><sub>Composite ESAI diagnostics and trends.</sub> | ![Extracted Subsection E](assets/additional_gallery/everythingyouneed/extracted_subsection_E.png)<br><sub>Supporting subsection figure extracted for paper alignment.</sub> | ![Full ESAI Lambda Sweep](assets/additional_gallery/everythingyouneed/full_esai_lambda_sweep.png)<br><sub>Full ESAI-only lambda sweep results.</sub> |
+| ![Lambda 0.85 Detailed](assets/additional_gallery/everythingyouneed/lambda_085_detailed.png)<br><sub>Fine-grained diagnostics at lambda = 0.85.</sub> |  |  |
+
+### Randomization Quality Check
+
+| |
+|---|
+| ![Randomization Check Moral Temptation](assets/additional_gallery/quality_checks/randomization_check_moral_temptation.png)<br><sub>Randomization sanity check for Moral Temptation environment setup.</sub> |
+
 ## Output Layout
 
 Training outputs are written to:
