@@ -9,7 +9,6 @@ Official implementation of ESAI for Moral Temptation experiments.
 ## Quick Links
 
 - Reproducibility guide: this README
-- Equation-to-code mapping: [IMPLEMENTATION.md](IMPLEMENTATION.md)
 
 ## Setup
 
@@ -155,3 +154,104 @@ evaluate.py    evaluation entrypoint
 ## License
 
 MIT License. See [LICENSE](LICENSE).
+
+---
+
+## Implementation Details (Merged)
+
+**Paper**: Embedded Safety-Aligned Intelligence for Multi-Agent Reinforcement Learning  
+**Authors**: Harsh Rathva, Pruthwik Mishra — SVNIT, Surat, India  
+**Venue**: ALA @ AAMAS 2026
+
+### Paper Equation -> Code Mapping
+
+| Paper | Equation | Code Location | Function/Class |
+|-------|----------|---------------|----------------|
+| Eq. 1 | IAE dynamics: $E_{t+1} = \gamma_E E_t + g_\phi(z,a,h)$ | `esaiv3/model.py` L353-450 | `ESAIv3Agent.update_iae()` |
+| Eq. 2 | Counterfactual forecast: $\hat{E}(a) = h_\psi(s_t, a, \text{read}(H))$ | `esaiv3/model.py` L452-520 | `ESAIv3Agent.forecast_counterfactual()` |
+| Eq. 3 | Softmin reference: $\pi_{ref}(a) \propto \exp(-R(a)/\tau)$ | `esaiv3/loss.py` L50-77 | `AlignmentLoss.compute_softmin_reference()` |
+| Eq. 4 | Attention gating: $\tilde{o} = \sigma(W_E E) \odot o$ | `esaiv3/model.py` L13-57 | `AttentionGating.forward()` |
+| Eq. 5 | Hebbian update: $H_{t+1} = (1-\delta)H_t + \eta(E \otimes z)$ | `esaiv3/model.py` L76-95 | `HebbianMemory.update()` |
+| Eq. 6 | Harm scalarization: $R(a) = \|\hat{E}(a)\|^2$ | `esaiv3/loss.py` L35-48 | `AlignmentLoss.compute_harm_values()` |
+| Eq. 7-8 | Softmin reference distribution | `esaiv3/loss.py` L50-77 | `AlignmentLoss.compute_softmin_reference()` |
+| Eq. 9 | Alignment regret: $AR_t = \|E_{t+1} - E^{ref}\|^2$ | `esaiv3/loss.py` L79-142 | `AlignmentLoss.forward()` |
+| Eq. 10 | Similarity weights: $S_{ij} = \cos(E_i, E_j)$ | `esaiv3/model.py` L141-155 | `GraphDiffusion.compute_similarity_matrix()` |
+| Eq. 11 | Bias regularizer | `esaiv3/model.py` L193-197 | `GraphDiffusion.compute_bias_penalty()` |
+| Eq. 12 | Graph diffusion: $E' = E - \alpha L E$ | `esaiv3/model.py` L175-191 | `GraphDiffusion.diffuse()` |
+| Eq. 13 | Reward transform: $r' = r^{ext} - \lambda \cdot AR$ | `train.py` L600-650 | `transform_rewards()` |
+| Eq. 14 | PPO objective | `esaiv3/loss.py` L189-235 | `PPOLoss.forward()` |
+
+### Architecture -> Class Mapping
+
+```text
+┌─────────────────────────────────────────────────┐
+│                  ESAIv3Agent                     │
+│                (esaiv3/model.py)                 │
+│                                                  │
+│  ┌──────────────┐  ┌──────────────────────────┐ │
+│  │ AttentionGating│  │ HebbianMemory            │ │
+│  │ (Eq. 4)       │  │ (Eq. 5)                  │ │
+│  └──────────────┘  └──────────────────────────┘ │
+│                                                  │
+│  ┌──────────────┐  ┌──────────────────────────┐ │
+│  │ GraphDiffusion│  │ Forecaster Network       │ │
+│  │ (Eq. 10–12)  │  │ (Eq. 2)                  │ │
+│  └──────────────┘  └──────────────────────────┘ │
+└─────────────────────────────────────────────────┘
+         │                        │
+         ▼                        ▼
+┌────────────────┐     ┌─────────────────┐
+│  AlignmentLoss │     │    PPOLoss      │
+│ (Eq. 3,6-9)    │     │   (Eq. 14)      │
+│ esaiv3/loss.py │     │ esaiv3/loss.py  │
+└────────────────┘     └─────────────────┘
+```
+
+### Hyperparameters (Paper Table 1)
+
+| Parameter | Value | Config Key |
+|-----------|-------|------------|
+| IAE dimension $k$ | 32 | `iae_dim` |
+| Hidden dimension | 128 | `hidden_dim` |
+| Learning rate | 3e-4 | `lr` |
+| $\gamma$ (discount) | 0.99 | `gamma` |
+| $\gamma_E$ (IAE decay) | 0.9 | `gamma_E` |
+| $\lambda_{GAE}$ | 0.95 | `gae_lambda` |
+| Entropy coefficient | 0.01 -> 0.001 | `entropy_coef_start/end` |
+| PPO clip $\epsilon$ | 0.2 | `clip_epsilon` |
+| Lambda warmup | 10,000 steps | `lambda_warmup_steps` |
+| Softmin temperature $\tau$ | 1.0 -> 0.1 | `temperature_start/end` |
+| Diffusion rate $\alpha$ | 0.05 | `alpha_diffusion` |
+| Hebbian learning rate $\eta$ | 1e-3 | `eta` |
+| Hebbian decay $\delta$ | 0.02 | `delta` |
+| Memory dimension | 32 | `memory_dim` |
+
+### File Structure
+
+```text
+├── esaiv3/                  # Core ESAI package
+│   ├── __init__.py          # Package exports
+│   ├── model.py             # ESAIv3Agent, AttentionGating, HebbianMemory, GraphDiffusion
+│   ├── loss.py              # AlignmentLoss, PPOLoss, ForecastLoss
+│   ├── memory.py            # HebbianMemory (standalone)
+│   ├── env_wrappers.py      # MoralTemptation environment wrapper
+│   ├── utils.py             # GAE, seed, scheduling utilities
+│   ├── logging_utils.py     # Eval logging
+│   └── visualization.py     # Training visualization tools
+├── configs/
+│   ├── model/               # YAML configs (ESAI, PPO, CPO, ablations)
+│   └── envs/                # Environment configs
+├── scripts/                 # Experiment and plotting scripts
+├── train.py                 # Main training script
+├── evaluate.py              # Evaluation script
+├── requirements.txt         # Dependencies
+└── setup.py                 # Package installation
+```
+
+### Known Limitations
+
+- Results from limited seeds per condition
+- Single simplified environment (Moral Temptation)
+- No comparison to simple reward shaping baseline
+- No full systematic component ablation
+- Multi-agent components (graph diffusion) not exercised in all evaluations
