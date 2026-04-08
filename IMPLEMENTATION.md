@@ -1,5 +1,7 @@
 # ESAI Implementation Details
 
+Primary reproduction guide: [README.md](README.md)
+
 **Paper**: Embedded Safety-Aligned Intelligence for Multi-Agent Reinforcement Learning  
 **Authors**: Harsh Rathva, Pruthwik Mishra — SVNIT, Surat, India  
 **Venue**: ALA @ AAMAS 2026
@@ -65,21 +67,29 @@ pip install -r requirements.txt
 
 ### Table 2 — Complete Lambda Sweep
 ```bash
-# PPO baseline (λ=0)
-python train.py --config configs/model/ppo_baseline_paper.yaml
+# PPO baseline (single seed)
+python3 train.py \
+    --env-config configs/envs/moral_temptation.yaml \
+    --config configs/model/ppo_baseline_paper.yaml \
+    --exp-name ppo_baseline_paper \
+    --seed 1 \
+    --total-steps 500000
 
-# CPO baseline (λ=2.0)
-python train.py --config configs/model/cpo_baseline.yaml
+# CPO baseline (single seed)
+python3 train.py \
+    --env-config configs/envs/moral_temptation.yaml \
+    --config configs/model/cpo_baseline.yaml \
+    --exp-name cpo_baseline \
+    --seed 1 \
+    --total-steps 500000
 
-# ESAI with different λ values
-python train.py --config configs/model/esaiv3_default.yaml --lambda_reg 0.05
-python train.py --config configs/model/esaiv3_default.yaml --lambda_reg 0.078
-python train.py --config configs/model/esaiv3_default.yaml --lambda_reg 0.08
-python train.py --config configs/model/esaiv3_default.yaml --lambda_reg 0.085
-python train.py --config configs/model/esaiv3_default.yaml --lambda_reg 0.5
-python train.py --config configs/model/esaiv3_default.yaml --lambda_reg 1.0
-python train.py --config configs/model/esaiv3_default.yaml --lambda_reg 5.0
-python train.py --config configs/model/esaiv3_default.yaml --lambda_reg 10.0
+# ESAI (single seed)
+python3 train.py \
+    --env-config configs/envs/moral_temptation.yaml \
+    --config configs/model/esaiv3_lambda5_paper.yaml \
+    --exp-name esaiv3_lambda5_paper \
+    --seed 1 \
+    --total-steps 500000
 ```
 
 ### Full Paper Experiments (All-in-One)
@@ -89,7 +99,9 @@ bash scripts/run_paper_experiments.sh
 
 ### Generate Paper Figures
 ```bash
-python scripts/generate_paper_figures.py
+python3 scripts/generate_paper_figures.py \
+    --results-dir results/moral_temptation \
+    --output-dir results/figures
 ```
 
 ---
